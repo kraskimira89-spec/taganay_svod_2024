@@ -1,19 +1,16 @@
 """
-Сверка физлиц из ОСВ по счёту 76 с листом «Персонал_2024_soc_taxi».
+Сверка физлиц из ОСВ по счёту 76 с листом персонала в Personal_2024_soc_taxi.xlsx.
 
-Ищет ФИО из колонки контрагента, сопоставляет с колонкой «ФИО» в Personal_2024_soc_taxi.xlsx
-и проставляет: «уже в ФОТ» / «вне ФОТ» / «не ФЛ (организация)».
+Ищет ФИО из колонки контрагента, сопоставляет с колонкой «ФИО» и проставляет:
+«уже в ФОТ» / «вне ФОТ» / «не ФЛ (организация)».
 
-Исходник ОСВ:
-  - по умолчанию: _extract_osv/Osv_schet_76_2024.xls (после rename_extract_osv_files.py);
-  - или ваш .xlsx с тем же порядком колонок, как в 1С (A — наименование, обороты в D/E),
-    плюс опционально последний столбец с ролью («водитель», «соц. работник» и т.п.).
-
-Выход: Osv76_sverka_2024.xlsx
+Исходник ОСВ по умолчанию: _extract_osv/Osv_schet_76_{year}.xls
+Выход по умолчанию: Osv76_sverka_{year}.xlsx
 
 Запуск:
-  python svod_reconcile_osv76.py
-  python svod_reconcile_osv76.py --osv "C:\\path\\OSV_76_moi.xlsx" --sheet Лист1
+  python svod_reconcile_osv76.py --year 2024
+  python svod_reconcile_osv76.py --year 2025 --osv "…" --out Osv76_sverka_2025.xlsx
+  python svod_reconcile_osv76.py --osv "C:\\path\\OSV_76_moi.xlsx" --sheet-osv Лист1
 """
 
 from __future__ import annotations
@@ -27,8 +24,6 @@ import pandas as pd
 BASE_DIR = Path(__file__).resolve().parent
 EXTRACT_DIR = BASE_DIR / "_extract_osv"
 PERSONAL_DEFAULT = BASE_DIR / "Personal_2024_soc_taxi.xlsx"
-OSV76_DEFAULT = EXTRACT_DIR / "Osv_schet_76_2024.xls"
-OUT_FILE = BASE_DIR / "Osv76_sverka_2024.xlsx"
 
 ORG_MARKERS = (
     "ООО",
@@ -170,38 +165,56 @@ def match_status(name: str, personal: set[str]) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Сверка ОСВ-76 с Personal_2024_soc_taxi")
+    ap = argparse.ArgumentParser(description="Сверка ОСВ-76 с персоналом соцтакси")
+    ap.add_argument("--year", type=int, default=2024, help="Год (подставляется в пути по умолчанию)")
     ap.add_argument("--personal", type=Path, default=PERSONAL_DEFAULT, help="Файл с персоналом")
     ap.add_argument(
         "--osv",
         type=Path,
-        default=OSV76_DEFAULT if OSV76_DEFAULT.is_file() else None,
-        help="ОСВ 76 (.xls / .xlsx). По умолчанию _extract_osv/Osv_schet_76_2024.xls",
+        default=None,
+        help="ОСВ 76 (.xls / .xlsx). По умолчанию _extract_osv/Osv_schet_76_{year}.xls",
+    )
+    ap.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Выходной .xlsx (по умолчанию Osv76_sverka_{year}.xlsx)",
     )
     ap.add_argument("--sheet-personal", default="Персонал_2024_soc_taxi")
     ap.add_argument("--sheet-osv", default=None, help="Лист Excel с ОСВ (если не первый)")
     args = ap.parse_args()
 
-    if args.osv is None or not args.osv.is_file():
+    osv = args.osv
+    if osv is None:
+        osv = EXTRACT_DIR / f"Osv_schet_76_{args.year}.xls"
+    elif not osv.is_absolute():
+        osv = BASE_DIR / osv
+
+    out_file = args.out
+    if out_file is None:
+        out_file = BASE_DIR / f"Osv76_sverka_{args.year}.xlsx"
+    elif not out_file.is_absolute():
+        out_file = BASE_DIR / out_file
+
+    if not osv.is_file():
         raise SystemExit(
-            "Укажите путь к ОСВ 76: --osv \"...\" "
-            f"(ожидается после переименования: {OSV76_DEFAULT})"
+            f"Нет файла ОСВ 76: {osv}. Укажите --osv или положите Osv_schet_76_{args.year}.xls в _extract_osv"
         )
 
     personal = load_personal_fio(args.personal, args.sheet_personal)
-    detail = load_osv76_rows(args.osv, args.sheet_osv)
+    detail = load_osv76_rows(osv, args.sheet_osv)
 
     detail["Статус_сверки_с_ФОТ"] = detail["Контрагент"].apply(lambda x: match_status(x, personal))
 
-    with pd.ExcelWriter(OUT_FILE, engine="openpyxl") as w:
+    with pd.ExcelWriter(out_file, engine="openpyxl") as w:
         detail.to_excel(w, sheet_name="Сверка_76", index=False)
         pd.DataFrame(sorted(personal), columns=["ФИО_нормализовано_в_персонале"]).to_excel(
             w, sheet_name="Справочник_ФИО", index=False
         )
 
-    print("ОСВ:", args.osv)
+    print("ОСВ:", osv)
     print("Персонал:", args.personal)
-    print("Создан:", OUT_FILE)
+    print("Создан:", out_file)
     print(detail["Статус_сверки_с_ФОТ"].value_counts().to_string())
 
 

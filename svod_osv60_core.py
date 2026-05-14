@@ -1,33 +1,35 @@
 """
-Общая логика свода по ОСВ счёта 60: классификация контрагентов, группы для записки, Excel.
+Общая логика свода по ОСВ счёта 60: загрузка, группы, записка, запись Excel.
 
-Точки входа по годам: `svod_osv60_2024.py`, `svod_osv60_2025.py` (вызывают `run_year`).
+Публичный CLI: `svod_osv60.py --year …` (см. также функции в этом модуле).
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
 
+from config_allocation import get_soc_taxi_share
+from config_osv60 import (
+    G_ARENDA_AVTO,
+    G_ARENDA_GARAZH,
+    G_IT,
+    G_KOMM,
+    G_MED,
+    G_MOYKA,
+    G_PROCH,
+    G_REMONT,
+    G_STRAH,
+    G_TOP,
+    classify_by_article,
+)
+
 BASE_DIR = Path(__file__).resolve().parent
 EXTRACT_DIR = BASE_DIR / "_extract_osv"
 
-SOC_TAXI_REVENUE_SHARE = 0.78
-
 COL_ON_SOC = "На_соцтакси"
-
-# Внутренние группы (детализация)
-G_TOP = "Топливо (ГСМ)"
-G_ARENDA_AVTO = "Аренда автомобиля"
-G_ARENDA_GARAZH = "Аренда гаража/стоянки"
-G_REMONT = "Ремонт и обслуживание автомобиля"
-G_MOYKA = "Мойка автомобилей"
-G_STRAH = "Страхование автомобиля"
-G_MED = "Медосмотр водителей"
-G_KOMM = "Коммунальные услуги"
-G_IT = "Связь, IT и офисные расходы"
-G_PROCH = "Прочие эксплуатационные"
 
 
 def _norm(s: str) -> str:
@@ -59,8 +61,8 @@ def is_bank_or_clearing(name: str) -> bool:
 
 def classify_counterparty(name: str) -> tuple[str, bool] | None:
     """
-    Возвращает (внутренняя_группа, прямые_100_процентов) или None,
-    если контрагент не входит в перечень для расчёта себестоимости соцтакси.
+    Классификация по наименованию контрагента (сырая выгрузка 1С без статьи).
+    Возвращает (внутренняя_группа, прямые_100_процентов) или None.
     """
     n = _norm(name)
 
@@ -127,6 +129,19 @@ def classify_counterparty(name: str) -> tuple[str, bool] | None:
     return None
 
 
+def classify_row(
+    counterparty: str,
+    article: str | None,
+) -> tuple[str, bool] | None:
+    """Сначала статья расходов (если есть), иначе контрагент."""
+    if is_bank_or_clearing(counterparty):
+        return None
+    by_art = classify_by_article(article)
+    if by_art is not None:
+        return by_art
+    return classify_counterparty(counterparty)
+
+
 def find_osv60_file(year: int) -> Path:
     preferred = EXTRACT_DIR / f"Osv_schet_60_{year}.xls"
     if preferred.is_file():
@@ -151,8 +166,64 @@ def to_amount(value: object) -> float:
         return 0.0
 
 
-def load_osv60_rows(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _cell_article(df: pd.DataFrame, row: int, article_col_idx: int | None) -> str | None:
+    if article_col_idx is None:
+        return None
+    if article_col_idx < 0 or article_col_idx >= df.shape[1]:
+        return None
+    v = df.iloc[row, article_col_idx]
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return None
+    s = str(v).strip()
+    return s if s else None
+
+
+def guess_article_column(df: pd.DataFrame) -> int | None:
+    """
+    Для выгрузок с доп. столбцом «Статья расходов» (как «верная» ОСВ из бухгалтерии).
+    Ищем столбец справа от стандартных 7 числовых колонок с текстовыми пояснениями.
+    """
+    if df.shape[1] <= 7:
+        return None
+    best_c: int | None = None
+    best_score = 0.0
+    for c in range(7, min(df.shape[1], 14)):
+        texts = 0
+        total = 0
+        for i in range(8, min(len(df), 40)):
+            name = df.iloc[i, 0]
+            if not isinstance(name, str) or not name.strip():
+                continue
+            nu = name.strip().upper()
+            if nu == "60" or nu.startswith("ИТОГ"):
+                continue
+            v = df.iloc[i, c]
+            total += 1
+            if isinstance(v, str) and len(v.strip()) > 1:
+                t = v.strip()
+                if not re.fullmatch(r"[\d\s.,+-]+", t.replace(",", ".")):
+                    texts += 1
+        if total == 0:
+            continue
+        score = texts / total
+        if score > best_score:
+            best_score = score
+            best_c = c
+    if best_c is not None and best_score >= 0.35:
+        return best_c
+    return None
+
+
+def load_osv60_rows(
+    path: Path,
+    article_col_idx: int | None = None,
+    year: int = 2024,
+) -> tuple[pd.DataFrame, pd.DataFrame, int | None]:
     df = pd.read_excel(path, header=None, engine="xlrd")
+    k_indirect = get_soc_taxi_share(year)
+    effective_article_col = article_col_idx
+    if effective_article_col is None:
+        effective_article_col = guess_article_column(df)
     included = []
     excluded = []
     for i in range(len(df)):
@@ -174,13 +245,15 @@ def load_osv60_rows(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
             continue
 
         base = turn_cr if turn_cr else turn_dr
+        article = _cell_article(df, i, effective_article_col)
 
-        classified = classify_counterparty(name)
+        classified = classify_row(name, article)
         if classified is None:
             excluded.append(
                 {
                     "Строка": i + 1,
                     "Контрагент": name,
+                    "Статья_расходов": article or "",
                     "Оборот_Дт": turn_dr,
                     "Оборот_Кт": turn_cr,
                     "База_для_расчёта": base,
@@ -192,12 +265,14 @@ def load_osv60_rows(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
             continue
 
         grp, direct = classified
-        on_soc = base if direct else base * SOC_TAXI_REVENUE_SHARE
+        # Прямые расходы соцтакси — 100% базы; косвенные — по доле приходов по соцуслугам (см. config_allocation)
+        on_soc = base if direct else base * k_indirect
 
         included.append(
             {
                 "Строка": i + 1,
                 "Контрагент": name,
+                "Статья_расходов": article or "",
                 "Сальдо_Дт_нач": open_dr,
                 "Сальдо_Кт_нач": open_cr,
                 "Оборот_Дт": turn_dr,
@@ -210,7 +285,7 @@ def load_osv60_rows(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
                 COL_ON_SOC: on_soc,
             }
         )
-    return pd.DataFrame(included), pd.DataFrame(excluded)
+    return pd.DataFrame(included), pd.DataFrame(excluded), effective_article_col
 
 
 def build_zapiska_table(detail: pd.DataFrame, year: int) -> pd.DataFrame:
@@ -259,21 +334,73 @@ def build_zapiska_table(detail: pd.DataFrame, year: int) -> pd.DataFrame:
     return out
 
 
-def run_year(year: int) -> Path:
-    """Строит `Osv60_soc_taxi_{year}.xlsx` из ОСВ 60 за указанный год."""
-    src = find_osv60_file(year)
-    out_file = BASE_DIR / f"Osv60_soc_taxi_{year}.xlsx"
+def build_svod_dataframe(detail: pd.DataFrame) -> pd.DataFrame:
+    """
+    Свод по внутренним группам: сумма оборота по кредиту и сумма, отнесённая на соцтакси.
+    """
+    if detail.empty:
+        return pd.DataFrame(columns=["Внутренняя_группа", "Сумма_оборот_Кт", "Сумма_на_соцтакси"])
+    return (
+        detail.groupby("Внутренняя_группа", as_index=False)
+        .agg(Сумма_оборот_Кт=("Оборот_Кт", "sum"), Сумма_на_соцтакси=(COL_ON_SOC, "sum"))
+        .sort_values("Внутренняя_группа", ignore_index=True)
+    )
 
-    detail, skipped = load_osv60_rows(src)
-    zapiska = build_zapiska_table(detail, year)
 
-    with pd.ExcelWriter(out_file, engine="openpyxl") as writer:
+def write_osv60_workbook(
+    output_path: Path,
+    detail: pd.DataFrame,
+    skipped: pd.DataFrame,
+    svod: pd.DataFrame,
+    zapiska: pd.DataFrame,
+) -> None:
+    """Четыре листа: детально, свод по группам, исключённые строки, строки для пояснительной."""
+    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
         detail.to_excel(writer, sheet_name="Строки_ОСВ60", index=False)
+        if svod is not None and len(svod) > 0:
+            svod.to_excel(writer, sheet_name="Свод_по_группам", index=False)
         skipped.to_excel(writer, sheet_name="Не_включено_в_свод", index=False)
         zapiska.to_excel(writer, sheet_name="Группа_затрат_записка", index=False)
 
+
+def run_with_paths(
+    year: int,
+    osv_path: Path | None = None,
+    out_path: Path | None = None,
+    article_col_idx: int | None = None,
+) -> Path:
+    """Строит Excel-свод по счёту 60 за указанный год."""
+    src = osv_path if osv_path is not None else find_osv60_file(year)
+    if not src.is_file():
+        raise FileNotFoundError(f"Нет файла ОСВ: {src}")
+    out_file = out_path if out_path is not None else (BASE_DIR / f"Osv60_soc_taxi_{year}.xlsx")
+
+    detail, skipped, used_article_col = load_osv60_rows(
+        src, article_col_idx=article_col_idx, year=year
+    )
+    svod = build_svod_dataframe(detail)
+    zapiska = build_zapiska_table(detail, year)
+    write_osv60_workbook(out_file, detail, skipped, svod, zapiska)
+
+    print_osv60_run_summary(
+        src, out_file, used_article_col, article_col_idx, detail, skipped, zapiska
+    )
+    return out_file
+
+
+def print_osv60_run_summary(
+    src: Path,
+    out_file: Path,
+    used_article_col: int | None,
+    article_col_idx: int | None,
+    detail: pd.DataFrame,
+    skipped: pd.DataFrame,
+    zapiska: pd.DataFrame,
+) -> None:
     print("Источник:", src)
     print("Создан файл:", out_file)
+    if used_article_col is not None:
+        src_note = "задана" if article_col_idx is not None else "определена автоматически"
+        print(f"Колонка «Статья расходов» ({src_note}), 0-based индекс:", used_article_col)
     print("Строк включено:", len(detail), "исключено:", len(skipped))
     print("Итого по счёту 60 на соцтакси:", round(float(zapiska.iloc[-1, 1]), 2), "руб.")
-    return out_file

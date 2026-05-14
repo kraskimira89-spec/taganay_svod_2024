@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from config_allocation import get_soc_taxi_share
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -13,7 +14,8 @@ VZNOSY_OUT = BASE_DIR / "Vznosy_2024_auto.xlsx"
 
 ITOG_OUT = BASE_DIR / "Itog_personal_vznosy_2024.xlsx"
 PERSONAL_SOC_TAXI_OUT = BASE_DIR / "Personal_2024_soc_taxi.xlsx"
-SOC_TAXI_REVENUE_SHARE_2024 = 0.78
+
+SOC_TAXI_REVENUE_SHARE_2024 = get_soc_taxi_share(2024)
 
 GROUP_DRIVERS_SOCIAL = "1. ФОТ водителей и соцработников"
 GROUP_DISPATCHER = "2. ФОТ диспетчера"
