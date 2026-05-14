@@ -145,6 +145,10 @@ python compare_osv60.py
 
 Сводная **выгрузка 1С** по счёту 60 в формате Excel остаётся в **`_extract_osv/Osv_schet_60_{год}.xls`** — она участвует в скриптах; PDF в `docs/dogovory/` дублирует учёт для приложения к материалам суда.
 
+### Банковские выписки (подтверждение платежей)
+
+Копии выписок **Сбер** и **ВТБ** за **2024** и **2025** лежат в **`docs/bank_vypiski/`** ([описание](docs/bank_vypiski/README.md)). Обновить с диска `E:\`: `python scripts/sync_bank_vypiski.py`.
+
 ### ФОТ и страховые взносы (лист `Группа_затрат_2024`)
 
 | Блок | Документы |
@@ -188,6 +192,7 @@ python svod_osv60.py --year 2024 --osv-path "E:\ЦИП Таганай\6-БУХГ
 - **60 за 2024:** `python scripts/sync_osv60_vernaya_2024.py` (`OSV60_VERNAYA_2024` при необходимости).
 - **60 за 2025:** `python scripts/sync_osv60_vernaya_2025.py` (`OSV60_VERNAYA_2025`); исходник по умолчанию — `ОБС верно по счету 60 за 2025 г.xls`.
 - **70 за 2025** (архив в проекте, свода по 70 пока нет): `python scripts/sync_osv70_vernaya_2025.py` (`OSV70_VERNAYA_2025`); копия как `Osv_schet_70_2025.xls`.
+- **Банковские выписки** (Сбер, ВТБ, 2024–2025): `python scripts/sync_bank_vypiski.py` → `docs/bank_vypiski/` (`BANK_VYPISKI_*` при необходимости).
 
 Результаты: `Osv60_soc_taxi_2024.xlsx` / `Osv60_soc_taxi_2025.xlsx` — см. раздел **«Листы Osv60_soc_taxi»** выше. После переименования в `_extract_osv` также появляется `Svod_finansovye_pokazateli_2024.xlsx`.
 

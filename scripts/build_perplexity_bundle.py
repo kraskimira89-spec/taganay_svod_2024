@@ -68,7 +68,7 @@ def _collect_files() -> list[tuple[Path, str]]:
     docs_dir = ROOT / "docs"
     if docs_dir.is_dir():
         for p in sorted(docs_dir.rglob("*")):
-            if p.is_file() and p.suffix.lower() in (".pdf", ".md"):
+            if p.is_file() and p.suffix.lower() in (".pdf", ".md", ".xlsx"):
                 rel = p.relative_to(ROOT).as_posix()
                 out.append((p, f"{PREFIX}/{rel}"))
 
@@ -113,7 +113,7 @@ def _manifest_lines(entries: list[tuple[Path, str]]) -> str:
             "- _extract_osv/Osv_schet_* — выгрузки ОСВ из 1С;",
             "- config_allocation.py — доли приходов по соцуслугам (косвенные: 2024=0.78, 2025=0.76);",
             "- README.md — воспроизводимый pipeline;",
-            "- docs/** — PDF и описания для раздела «Документальное обоснование».",
+            "- docs/** — PDF, XLSX выписки (`bank_vypiski`), описания;",
         ]
     )
     return "\n".join(lines) + "\n"
