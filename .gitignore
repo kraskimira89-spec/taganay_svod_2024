@@ -28,9 +28,16 @@ Thumbs.db
 
 # --- локальные выгрузки 1С (пересобираются sync-скриптами) ---
 _extract_osv/
+_extract_osv_2025/
 
 # Сырые .xls из бухгалтерии (в репозитории не держим; в проекте — после sync)
 *.xls
+# Исключение: заявки ГКУ ЦСТ (реестр для сверки с отчётностью)
+!data/gku_cst/
+!data/gku_cst/**/Заявки*.xls
+!data/gku_cst/**/zayavki_*_svod.xlsx
+!data/gku_cst/**/zayavki_*_po_mesyacam.csv
+!data/gku_cst/**/zayavki_*_po_postavschiku.csv
 
 # Артефакт `python scripts/build_perplexity_bundle.py` (пересобирается локально)
 Perplexity_paket_Taganay_2024_2025.zip

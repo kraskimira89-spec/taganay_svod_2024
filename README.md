@@ -187,6 +187,7 @@ python debug_svod.py
 - `python scripts/verify_arenda_lopakova_osv60.py` — сумма «На_соцтакси» по **Лопакова** в `Osv60_soc_taxi_2024.xlsx` vs **1 080 000** руб./год (договор аренды VW).
 - `python scripts/check_vznosy_rate_2024.py` — совокупная доля взносов к базе по каждому файлу `Nalogi-i-vznosy*.xlsx` (ориентир **7,2%**).
 - `python scripts/check_amort_protocol_numbers.py` — напоминание цифр Кт по счёту **02** из протокола и наличие `Osv_schet_02_{год}.xls`.
+- `python scripts/export_zayavki_gku_cst.py --year 2025` — реестр **«Заявки … ГКУ ЦСТ»** в `data/gku_cst/{год}/`, свод `zayavki_*_svod.xlsx` и CSV; связь с PDF «сводный отчёт» — в `docs/sverki/Zayavki_GKU_CST.md`.
 
 ## ОСВ по счёту 60 (прочие расходы для записки)
 
@@ -211,6 +212,7 @@ python svod_osv60.py --year 2024 --osv-path "E:\ЦИП Таганай\6-БУХГ
 
 - **60 за 2024:** `python scripts/sync_osv60_vernaya_2024.py` (`OSV60_VERNAYA_2024` при необходимости).
 - **60 за 2025:** `python scripts/sync_osv60_vernaya_2025.py` (`OSV60_VERNAYA_2025`); исходник по умолчанию — `ОБС верно по счету 60 за 2025 г.xls`.
+- **Пакет из папки бухгалтерии** (`E:\ЦИП Таганай\6-БУХГАЛТЕРИЯ\…`): `python scripts/sync_extract_osv_from_buhgalteriya.py` (переменная **`BUHGALTERIYA_OSV_DIR`**).
 - **70 за 2024:** `python scripts/sync_osv70_vernaya_2024.py` (`OSV70_VERNAYA_2024`).
 - **70 за 2025** (архив в проекте, свода по 70 пока нет): `python scripts/sync_osv70_vernaya_2025.py` (`OSV70_VERNAYA_2025`); копия как `Osv_schet_70_2025.xls`.
 - **01 и 02 (ОС и амортизация):** задайте `OSV01_2024`, `OSV02_2024`, `OSV01_2025`, `OSV02_2025` и выполните `python scripts/sync_osv_01_02.py`. Контроль цифр из протокола: `python scripts/check_amort_protocol_numbers.py`.
