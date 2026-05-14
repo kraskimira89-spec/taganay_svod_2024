@@ -1,0 +1,42 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# виртуальное окружение
+.venv/
+venv/
+ENV/
+
+# --- IDE / редактор ---
+.idea/
+.vscode/
+.cursor/
+
+# --- секреты и локальная среда ---
+.env
+.env.*
+!.env.example
+
+# --- вывод скриптов ---
+output/
+
+# --- macOS / Windows ---
+.DS_Store
+Thumbs.db
+
+# --- локальные выгрузки 1С (пересобираются sync-скриптами) ---
+_extract_osv/
+
+# Сырые .xls из бухгалтерии (в репозитории не держим; в проекте — после sync)
+*.xls
+
+# Артефакт `python scripts/build_perplexity_bundle.py` (пересобирается локально)
+Perplexity_paket_Taganay_2024_2025.zip
+
+# Если нужен PDF свода ЗП только локально — раскомментируйте:
+# /Svodnyi-po-ZP-za-2024-god.pdf
+
+# Если не хотите версионировать Excel — раскомментируйте:
+# *.xlsx
