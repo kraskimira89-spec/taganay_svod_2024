@@ -59,10 +59,46 @@ def _to_amount(value: object) -> float:
         return 0.0
 
 
-def _read_raw(path: Path) -> pd.DataFrame:
-    kw: dict = {"header": None, "sheet_name": 0}
+def resolve_osv70_sheet(path: Path) -> str | int:
+    """
+    Выбирает лист с полной ОСВ по счёту 70 (как «Лист_1» в книге 2024 года).
+    Не использует листы-выборки «з пл» / «такси», если в книге есть «Лист_1».
+    """
+    if path.suffix.lower() != ".xls":
+        return 0
+    xl = pd.ExcelFile(path, engine="xlrd")
+    names = xl.sheet_names
+    for pref in ("Лист_1", "Лист1", "Лист 1"):
+        if pref in names:
+            return pref
+    best_sn: str | int = 0
+    best_n = 0
+    for sn in names:
+        try:
+            head = pd.read_excel(path, sheet_name=sn, header=None, engine="xlrd", nrows=5)
+        except Exception:
+            continue
+        if head.shape[0] < 2:
+            continue
+        r1 = str(head.iloc[1, 0]).lower()
+        if "оборотно" not in r1:
+            continue
+        blob = " ".join(str(head.iloc[r, 0]) for r in range(min(4, len(head)))).lower()
+        if "70" not in blob and "счету" not in blob and "счёту" not in blob:
+            continue
+        full = pd.read_excel(path, sheet_name=sn, header=None, engine="xlrd")
+        if len(full) > best_n:
+            best_n = len(full)
+            best_sn = sn
+    return best_sn
+
+
+def _read_raw(path: Path, *, sheet_70: bool = False) -> pd.DataFrame:
+    kw: dict = {"header": None}
     if path.suffix.lower() == ".xls":
         kw["engine"] = "xlrd"
+        if sheet_70:
+            kw["sheet_name"] = resolve_osv70_sheet(path)
     else:
         kw["engine"] = "openpyxl"
     return pd.read_excel(path, **kw)
@@ -70,7 +106,8 @@ def _read_raw(path: Path) -> pd.DataFrame:
 
 def load_osv_account_rows(path: Path, account_label: str) -> pd.DataFrame:
     """Строки ОСВ 70/76: колонки 1–6 — сальдо/обороты как в выгрузке 1С (см. svod_reconcile_osv76)."""
-    df = _read_raw(path)
+    use_70_sheet = path.suffix.lower() == ".xls" and account_label.strip() == "70"
+    df = _read_raw(path, sheet_70=use_70_sheet)
     acc = str(account_label).strip()
     rows: list[dict] = []
     for i in range(len(df)):
@@ -139,7 +176,7 @@ def default_osv70(year: int) -> Path:
         if not c.is_file():
             continue
         try:
-            n = len(_read_raw(c))
+            n = len(_read_raw(c, sheet_70=True))
         except Exception:
             continue
         if n > best_rows:
@@ -234,6 +271,8 @@ def main() -> None:
     if not osv70.is_file():
         raise SystemExit(f"Нет файла ОСВ 70: {osv70}")
 
+    sheet70_used = resolve_osv70_sheet(osv70) if osv70.suffix.lower() == ".xls" else 0
+
     inf70, check70 = assert_osv_year_matches(year, osv70, "ОСВ 70", args.allow_year_mismatch)
     inf76: int | None = None
     check76 = ""
@@ -319,6 +358,7 @@ def main() -> None:
         [
             ("логический_год_отчета_--year", year),
             ("osv70_путь", str(osv70)),
+            ("osv70_лист_данных", str(sheet70_used)),
             ("osv70_год_из_имени_файла", "" if inf70 is None else str(inf70)),
             ("osv70_проверка_года", check70),
             ("osv76_путь", str(osv76) if osv76.is_file() else ""),
@@ -362,6 +402,7 @@ def main() -> None:
             m.to_excel(w, sheet_name="сверка_ФЛ_70_76", index=False)
 
     print("ОСВ 70:", osv70)
+    print("ОСВ 70: лист данных:", sheet70_used)
     print("ОСВ 76:", osv76 if osv76.is_file() else "(нет)")
     print("База:", args.base)
     print("ИТОГО На_соцтакси (база 70 * доля):", f"{itog:,.2f}")
