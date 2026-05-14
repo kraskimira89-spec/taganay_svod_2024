@@ -113,7 +113,7 @@ def _manifest_lines(entries: list[tuple[Path, str]]) -> str:
             "- Svod_60_2024_2025.xlsx — сравнение групп записки (compare_osv60);",
             "- Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx — копия свода из папки отчётов (если синхронизировали);",
             "- _extract_osv/Osv_schet_* — выгрузки ОСВ из 1С;",
-            "- config_allocation.py — доли приходов по соцуслугам (косвенные: 2024=0.78, 2025=0.76);",
+            "- config_allocation.py — доли приходов по соцуслугам (косвенные: k=0.63 оба года; протокол v2);",
             "- README.md — воспроизводимый pipeline;",
             "- docs/** — PDF, XLSX выписки (`bank_vypiski`), описания;",
         ]

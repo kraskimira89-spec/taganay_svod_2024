@@ -123,6 +123,123 @@ def classify_counterparty(name: str) -> tuple[str, bool] | None:
     if "ЯРОШ" in n:
         return G_IT, False
 
+    # --- docs/dogovory/README + ручная разметка «Не_включено_в_свод» (контрагент без статьи) ---
+    # Топливо (ГСМ) — toplivo
+    if "РУСОЙЛ" in n:
+        return G_TOP, True
+    if "ТЭК-ТОРГ" in n:
+        return G_TOP, True
+
+    # Связь, IT — svyaz_it
+    if "МТС" in n:
+        return G_IT, False
+    if "РОСТЕЛЕКОМ" in n:
+        return G_IT, False
+    if "СКАРТЕЛ" in n:
+        return G_IT, False
+    if "СОФТЛАЙН" in n:
+        return G_IT, False
+    if "ИНТЕРНЕТ РЕШЕНИЯ" in n:
+        return G_IT, False
+    if "СКБ КОНТУР" in n or ("КОНТУР" in n and "СКБ" in n):
+        return G_IT, False
+    if "МАСТЕР" in n and "БИТ" in n:
+        return G_IT, False
+    if "ЭДУСТЕМ" in n:
+        return G_IT, False
+    if "ДНС РИТЕЙЛ" in n:
+        return G_IT, False
+
+    # Медосмотры / медуслуги — medosmotr
+    if "АЭРОМЕД" in n:
+        return G_MED, True
+    if "ДЖИ ЭС МЕДИЦИН" in n:
+        return G_MED, True
+    if "ИТЦ" in n and "ДИАГНОСТИК" in n:
+        return G_MED, True
+    if "МЕДИЦИНСКИЕ РАСХОДНИКИ" in n:
+        return G_MED, True
+    if "СЕРТУМ-ПРО" in n:
+        return G_MED, True
+
+    # Ремонт / автотовары — remont
+    if "АВТОГРАД" in n and "ГАРАНТ" in n:
+        return G_REMONT, True
+    if "АЛЕКО" in n:
+        return G_REMONT, True
+    if "СИБКАР" in n:
+        return G_REMONT, True
+
+    # Коммуналка / эксплуатация помещений — kommunalka
+    if "ЭНЕРГОСФЕРА" in n:
+        return G_KOMM, False
+    if "ЕВРОКЛИМАТ" in n:
+        return G_KOMM, False
+    if "ЛИФТРЕМОНТ" in n:
+        return G_KOMM, False
+    if "СЕРЕБРЯНЫЙ ИСТОЧНИК" in n:
+        return G_KOMM, False
+
+    # Прочие известные контрагенты (логистика, подряд, госорганы, торговля)
+    if "ЯНДЕКС" in n and "ТАКСИ" in n:
+        return G_PROCH, False
+    if "УФССП" in n:
+        return G_PROCH, False
+    if "ДЕЛОВЫЕ ЛИНИИ" in n:
+        return G_PROCH, False
+    if "ПИАСТРЕЛЛА" in n:
+        return G_PROCH, False
+    if "СТРОИТЕЛЬНЫЙ ДВОР" in n:
+        return G_PROCH, False
+    if "ПРОФИ-СЕВЕР" in n:
+        return G_PROCH, False
+    if "МЕТРОСЕТЬ" in n:
+        return G_PROCH, False
+    if "НПП ФИЛЛИН" in n or ("ФИЛЛИН" in n and "НПП" in n):
+        return G_PROCH, False
+    if "БРОЗЭКС" in n:
+        return G_PROCH, False
+    if "МЕТПРОМ" in n:
+        return G_PROCH, False
+    if "МЕРКУРИЙ" in n and "ПТИ" in n:
+        return G_PROCH, False
+    if "СПЕЦМОНТАЖ" in n:
+        return G_PROCH, False
+    if "РЕДЕРМИО" in n:
+        return G_PROCH, False
+    if n.startswith("ПЭБ ") or " ПЭБ " in n:
+        return G_PROCH, False
+    if "СТРИН" in n:
+        return G_PROCH, False
+    if "ОБСЕРВЕР" in n:
+        return G_PROCH, False
+    if "ЛОРД" in n:
+        return G_PROCH, False
+    if "ДЖИРИ" in n:
+        return G_PROCH, False
+
+    # Физлица / ИП без формы в названии — услуги и прочие расходы (не дублируем договоры из dogovory)
+    if not any(
+        tag in n
+        for tag in (
+            " ООО",
+            " ПАО",
+            " АО",
+            " АНО",
+            " ЗАО",
+            " НАО",
+            " ПК",
+            " ТК ",
+            " ИП ",
+            "УФССП",
+            "МИНИСТЕРСТВО",
+            "УПРАВЛЕНИЕ",
+        )
+    ):
+        parts = str(name).strip().split()
+        if len(parts) >= 2:
+            return G_PROCH, False
+
     if "РЫБАЛКО" in n:
         return G_PROCH, False
 

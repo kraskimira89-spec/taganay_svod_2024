@@ -123,6 +123,123 @@ def classify_counterparty(name: str) -> tuple[str, bool] | None:
     if "ЯРОШ" in n:
         return G_IT, False
 
+    # --- docs/dogovory/README + ручная разметка «Не_включено_в_свод» (контрагент без статьи) ---
+    # Топливо (ГСМ) — toplivo
+    if "РУСОЙЛ" in n:
+        return G_TOP, True
+    if "ТЭК-ТОРГ" in n:
+        return G_TOP, True
+
+    # Связь, IT — svyaz_it
+    if "МТС" in n:
+        return G_IT, False
+    if "РОСТЕЛЕКОМ" in n:
+        return G_IT, False
+    if "СКАРТЕЛ" in n:
+        return G_IT, False
+    if "СОФТЛАЙН" in n:
+        return G_IT, False
+    if "ИНТЕРНЕТ РЕШЕНИЯ" in n:
+        return G_IT, False
+    if "СКБ КОНТУР" in n or ("КОНТУР" in n and "СКБ" in n):
+        return G_IT, False
+    if "МАСТЕР" in n and "БИТ" in n:
+        return G_IT, False
+    if "ЭДУСТЕМ" in n:
+        return G_IT, False
+    if "ДНС РИТЕЙЛ" in n:
+        return G_IT, False
+
+    # Медосмотры / медуслуги — medosmotr
+    if "АЭРОМЕД" in n:
+        return G_MED, True
+    if "ДЖИ ЭС МЕДИЦИН" in n:
+        return G_MED, True
+    if "ИТЦ" in n and "ДИАГНОСТИК" in n:
+        return G_MED, True
+    if "МЕДИЦИНСКИЕ РАСХОДНИКИ" in n:
+        return G_MED, True
+    if "СЕРТУМ-ПРО" in n:
+        return G_MED, True
+
+    # Ремонт / автотовары — remont
+    if "АВТОГРАД" in n and "ГАРАНТ" in n:
+        return G_REMONT, True
+    if "АЛЕКО" in n:
+        return G_REMONT, True
+    if "СИБКАР" in n:
+        return G_REMONT, True
+
+    # Коммуналка / эксплуатация помещений — kommunalka
+    if "ЭНЕРГОСФЕРА" in n:
+        return G_KOMM, False
+    if "ЕВРОКЛИМАТ" in n:
+        return G_KOMM, False
+    if "ЛИФТРЕМОНТ" in n:
+        return G_KOMM, False
+    if "СЕРЕБРЯНЫЙ ИСТОЧНИК" in n:
+        return G_KOMM, False
+
+    # Прочие известные контрагенты (логистика, подряд, госорганы, торговля)
+    if "ЯНДЕКС" in n and "ТАКСИ" in n:
+        return G_PROCH, False
+    if "УФССП" in n:
+        return G_PROCH, False
+    if "ДЕЛОВЫЕ ЛИНИИ" in n:
+        return G_PROCH, False
+    if "ПИАСТРЕЛЛА" in n:
+        return G_PROCH, False
+    if "СТРОИТЕЛЬНЫЙ ДВОР" in n:
+        return G_PROCH, False
+    if "ПРОФИ-СЕВЕР" in n:
+        return G_PROCH, False
+    if "МЕТРОСЕТЬ" in n:
+        return G_PROCH, False
+    if "НПП ФИЛЛИН" in n or ("ФИЛЛИН" in n and "НПП" in n):
+        return G_PROCH, False
+    if "БРОЗЭКС" in n:
+        return G_PROCH, False
+    if "МЕТПРОМ" in n:
+        return G_PROCH, False
+    if "МЕРКУРИЙ" in n and "ПТИ" in n:
+        return G_PROCH, False
+    if "СПЕЦМОНТАЖ" in n:
+        return G_PROCH, False
+    if "РЕДЕРМИО" in n:
+        return G_PROCH, False
+    if n.startswith("ПЭБ ") or " ПЭБ " in n:
+        return G_PROCH, False
+    if "СТРИН" in n:
+        return G_PROCH, False
+    if "ОБСЕРВЕР" in n:
+        return G_PROCH, False
+    if "ЛОРД" in n:
+        return G_PROCH, False
+    if "ДЖИРИ" in n:
+        return G_PROCH, False
+
+    # Физлица / ИП без формы в названии — услуги и прочие расходы (не дублируем договоры из dogovory)
+    if not any(
+        tag in n
+        for tag in (
+            " ООО",
+            " ПАО",
+            " АО",
+            " АНО",
+            " ЗАО",
+            " НАО",
+            " ПК",
+            " ТК ",
+            " ИП ",
+            "УФССП",
+            "МИНИСТЕРСТВО",
+            "УПРАВЛЕНИЕ",
+        )
+    ):
+        parts = str(name).strip().split()
+        if len(parts) >= 2:
+            return G_PROCH, False
+
     if "РЫБАЛКО" in n:
         return G_PROCH, False
 
@@ -143,17 +260,104 @@ def classify_row(
 
 
 def find_osv60_file(year: int) -> Path:
-    preferred = EXTRACT_DIR / f"Osv_schet_60_{year}.xls"
-    if preferred.is_file():
-        return preferred
-    if EXTRACT_DIR.is_dir():
-        files = sorted(EXTRACT_DIR.glob(f"*60*{year}*.xls"))
-        if files:
-            return files[0]
+    """
+    Ищет сырой файл ОСВ 60 для `load_osv60_rows`.
+
+    Приоритет: .xls раньше .xlsx; затем имя без *_old; файлы с первой ячейкой «Строка»
+    (готовый свод) пропускаются — берётся первая подходящая сырая выгрузка из кандидатов.
+    """
+    if not EXTRACT_DIR.is_dir():
+        raise FileNotFoundError(f"Нет каталога с выгрузками ОСВ: {EXTRACT_DIR}")
+
+    seen: set[str] = set()
+    cands: list[Path] = []
+
+    def add(p: Path) -> None:
+        if not p.is_file():
+            return
+        key = str(p.resolve())
+        if key not in seen:
+            seen.add(key)
+            cands.append(p)
+
+    for ext in (".xls", ".xlsx"):
+        add(EXTRACT_DIR / f"Osv_schet_60_{year}{ext}")
+    for pat in (f"Osv_schet_60_{year}*", f"*60*{year}*"):
+        for ext in (".xls", ".xlsx"):
+            for p in EXTRACT_DIR.glob(pat + ext):
+                add(p)
+
+    if not cands:
+        raise FileNotFoundError(
+            f"Не найден файл ОСВ 60 за {year} год (.xls или .xlsx). "
+            f"Положите сырой `Osv_schet_60_{year}.xls` (или `.xlsx` той же структуры, что из 1С) "
+            f"в {EXTRACT_DIR} или запустите rename_extract_osv_files.py"
+        )
+
+    def sort_key(p: Path) -> tuple[int, int, int, str]:
+        ext = p.suffix.lower()
+        ext_pri = 0 if ext == ".xls" else 1
+        low = p.name.lower()
+        old_pri = 1 if ("_old" in low) or (")" in p.name) else 0
+        canon = f"Osv_schet_60_{year}{p.suffix.lower()}"
+        canon_pri = 0 if p.name == canon else 1
+        return (ext_pri, old_pri, canon_pri, p.name)
+
+    ordered = sorted(cands, key=sort_key)
+    for p in ordered:
+        try:
+            df = read_osv60_workbook(p)
+        except Exception:
+            continue
+        if _is_raw_osv60_layout(df):
+            return p
+
+    names = ", ".join(x.name for x in ordered[:8])
+    tail = f" … (+{len(ordered) - 8})" if len(ordered) > 8 else ""
     raise FileNotFoundError(
-        f"Не найден файл ОСВ 60 за {year} год (*.xls). "
-        f"Положите `Osv_schet_60_{year}.xls` в {EXTRACT_DIR} или запустите rename_extract_osv_files.py"
+        f"В {EXTRACT_DIR} нет сырой выгрузки ОСВ 60 за {year} г. "
+        f"(ожидается лист без колонки «Строка» в ячейке A1). Найдены файлы: {names}{tail}. "
+        f"Положите выгрузку из 1С как `Osv_schet_60_{year}.xls` или укажите путь: "
+        f"`python svod_osv60.py --year {year} --osv-path \"…\\файл.xls\"`."
     )
+
+
+def _is_raw_osv60_layout(df: pd.DataFrame) -> bool:
+    """
+    Сырая выгрузка 1С по 60: без строки заголовка «Строка» в (0,0), достаточно строк и колонок.
+    Таблица свода из скрипта — первая колонка «Строка», такие файлы пропускаем при поиске.
+    """
+    if df.shape[0] < 8 or df.shape[1] < 7:
+        return False
+    top = str(df.iloc[0, 0]).strip().lower()
+    if "строк" in top:
+        return False
+    return True
+
+
+def read_osv60_workbook(path: Path) -> pd.DataFrame:
+    """
+    Читает сырой лист ОСВ 60 (без заголовка).
+
+    Часто файл сохраняют как «.xls», но по содержимому это OOXML (.xlsx) — тогда
+    читаем через openpyxl (сигнатура ZIP PK в начале файла).
+    """
+    suf = path.suffix.lower()
+    if suf not in (".xls", ".xlsx", ".xlsm"):
+        raise ValueError(f"Неподдерживаемое расширение файла ОСВ 60: {path}")
+
+    use_openpyxl = suf in (".xlsx", ".xlsm")
+    if suf == ".xls":
+        try:
+            with path.open("rb") as f:
+                head = f.read(4)
+            # Настоящий BIFF .xls не начинается с PK (ZIP — контейнер .xlsx).
+            use_openpyxl = head[:2] == b"PK"
+        except OSError:
+            use_openpyxl = False
+
+    engine = "openpyxl" if use_openpyxl else "xlrd"
+    return pd.read_excel(path, header=None, engine=engine)
 
 
 def to_amount(value: object) -> float:
@@ -219,7 +423,7 @@ def load_osv60_rows(
     article_col_idx: int | None = None,
     year: int = 2024,
 ) -> tuple[pd.DataFrame, pd.DataFrame, int | None]:
-    df = pd.read_excel(path, header=None, engine="xlrd")
+    df = read_osv60_workbook(path)
     k_indirect = get_soc_taxi_share(year)
     effective_article_col = article_col_idx
     if effective_article_col is None:

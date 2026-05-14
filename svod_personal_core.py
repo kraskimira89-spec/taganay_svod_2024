@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -16,6 +17,23 @@ import pandas as pd
 from config_allocation import get_soc_taxi_share
 
 BASE_DIR = Path(__file__).resolve().parent
+
+
+@dataclass
+class PersonalPipelineConfig:
+    """Необязательные переопределения путей для `run_personal_pipeline`."""
+
+    personal_file: Path | None = None
+    """Файл сводной ЗП (по умолчанию `Svodnyi-po-ZP-za-{год}-god.xlsx` в корне проекта)."""
+
+    vznosy_dir: Path | None = None
+    """Папка с Excel «Налоги и взносы» (все `*.xlsx` внутри). Альтернатива маске в корне."""
+
+    vznosy_glob: str | None = None
+    """Маска файлов взносов относительно корня проекта, напр. `Nalogi-i-vznosy*2025*.xlsx`."""
+
+    soc_taxi_out: Path | None = None
+    """Итоговый `Personal_{год}_soc_taxi.xlsx` (остальные промежуточные файлы — в корне с суффиксом года)."""
 
 GROUP_DRIVERS_SOCIAL = "1. ФОТ водителей и соцработников"
 GROUP_DISPATCHER = "2. ФОТ диспетчера"
@@ -79,18 +97,39 @@ def _participation_rules_for_year(year: int) -> dict[str, tuple[str, float, bool
     }
 
 
-def paths_for_year(year: int) -> dict[str, Path]:
+def paths_for_year(year: int, cfg: PersonalPipelineConfig | None = None) -> dict[str, Path]:
     zp = BASE_DIR / f"Svodnyi-po-ZP-za-{year}-god.xlsx"
+    if cfg and cfg.personal_file is not None:
+        zp = Path(cfg.personal_file).expanduser().resolve()
+    soc_out = BASE_DIR / f"Personal_{year}_soc_taxi.xlsx"
+    if cfg and cfg.soc_taxi_out is not None:
+        soc_out = Path(cfg.soc_taxi_out).expanduser().resolve()
     return {
         "personal_file": zp,
         "personal_out": BASE_DIR / f"Personal_{year}_auto.xlsx",
         "vznosy_out": BASE_DIR / f"Vznosy_{year}_auto.xlsx",
         "itog_out": BASE_DIR / f"Itog_personal_vznosy_{year}.xlsx",
-        "soc_taxi_out": BASE_DIR / f"Personal_{year}_soc_taxi.xlsx",
+        "soc_taxi_out": soc_out,
     }
 
 
-def vznosy_files_for_year(year: int) -> list[Path]:
+def vznosy_files_for_year(year: int, cfg: PersonalPipelineConfig | None = None) -> list[Path]:
+    if cfg and cfg.vznosy_glob:
+        raw = cfg.vznosy_glob.strip()
+        g = Path(raw).expanduser()
+        if g.is_file():
+            return [g.resolve()]
+        if not g.is_absolute():
+            return sorted(BASE_DIR.glob(raw))
+        parent, name = g.parent, g.name
+        if parent.is_dir() and ("*" in name or "?" in name):
+            return sorted(parent.glob(name))
+        raise ValueError(f"Некорректная маска взносов: {raw!r}")
+    if cfg and cfg.vznosy_dir is not None:
+        d = Path(cfg.vznosy_dir).expanduser().resolve()
+        if not d.is_dir():
+            raise FileNotFoundError(f"Нет папки взносов: {d}")
+        return sorted(d.glob("*.xlsx"))
     override = os.environ.get("VZNOSY_GLOB")
     if override:
         return sorted(BASE_DIR.glob(override))
@@ -227,10 +266,10 @@ def build_personal_summary(year: int, paths: dict[str, Path]) -> pd.DataFrame:
     return summary
 
 
-def build_vznosy_summary(year: int, paths: dict[str, Path]) -> pd.DataFrame:
+def build_vznosy_summary(year: int, paths: dict[str, Path], cfg: PersonalPipelineConfig | None = None) -> pd.DataFrame:
     vznosy_out = paths["vznosy_out"]
     v_col = f"Взносы_{year}"
-    files = vznosy_files_for_year(year)
+    files = vznosy_files_for_year(year, cfg)
     if not files:
         raise FileNotFoundError(
             f"Не найдены файлы взносов (год {year}). Положите Nalogi-i-vznosy*.xlsx "
@@ -263,7 +302,9 @@ def build_total_summary(
     return total
 
 
-def build_soc_taxi_summary(total: pd.DataFrame, year: int, paths: dict[str, Path]) -> pd.DataFrame:
+def build_soc_taxi_summary(
+    total: pd.DataFrame, year: int, paths: dict[str, Path]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     fot_col = f"ФОТ_{year}"
     v_col = f"Взносы_{year}"
     on_col = f"На_соцтакси_{year}"
@@ -323,17 +364,19 @@ def build_soc_taxi_summary(total: pd.DataFrame, year: int, paths: dict[str, Path
         result.to_excel(writer, sheet_name=sheet_p, index=False)
         group_summary.to_excel(writer, sheet_name=sheet_g, index=False)
 
-    return result
+    return result, group_summary
 
 
-def run_personal_pipeline(year: int) -> None:
-    paths = paths_for_year(year)
+def run_personal_pipeline(year: int, cfg: PersonalPipelineConfig | None = None) -> None:
+    paths = paths_for_year(year, cfg)
+    k = get_soc_taxi_share(year)
+    print(f"Год: {year}, k_соцтакси (админ-косвенные): {k}")
     print(f"Собираю ФОТ за {year} год...")
     personal = build_personal_summary(year, paths)
     print(f"Создан файл: {paths['personal_out']}")
 
     print(f"Собираю страховые взносы за {year} год...")
-    vznosy = build_vznosy_summary(year, paths)
+    vznosy = build_vznosy_summary(year, paths, cfg)
     print(f"Создан файл: {paths['vznosy_out']}")
 
     print("Собираю итоговую таблицу ФОТ + взносы...")
@@ -341,5 +384,14 @@ def run_personal_pipeline(year: int) -> None:
     print(f"Готово, итоговый файл создан: {paths['itog_out']}")
 
     print("Собираю таблицу персонала с долями участия в соцтакси...")
-    build_soc_taxi_summary(total, year, paths)
+    _res, group_summary = build_soc_taxi_summary(total, year, paths)
     print(f"Готово, целевой файл создан: {paths['soc_taxi_out']}")
+
+    total_row = group_summary[group_summary["Группа затрат"] == GROUP_TOTAL]
+    if not total_row.empty:
+        itog = float(total_row.iloc[0]["Сумма ФОТ+взносы на соцтакси, руб."])
+        print(f"ИТОГО трудовые затраты на соцтакси (лист Группа_затрат_{year}): {itog:,.2f} руб.")
+        if year == 2025:
+            ref = 3_629_342.14
+            diff = itog - ref
+            print(f"Для сверки со «Свод-2024-2025» (счёт 70, на соцтакси): ожидается ~ {ref:,.2f} руб.; разница {diff:,.2f} руб.")

@@ -2,7 +2,7 @@
 Универсальный pipeline по ОСВ счёта 60 для любого года (`--year`).
 
 Структура (воспроизводимый расчёт):
-  1. `load_osv60` — читает .xls, классифицирует строки (статья + контрагент);
+  1. `load_osv60` — читает .xls / .xlsx, классифицирует строки (статья + контрагент);
   2. `detect_group` — только правило по тексту статьи (для отладки/тестов);
   3. `build_svod` — группировка включённых строк по внутренней группе, суммы по кредиту и на соцтакси;
   4. `save_report` — Excel: «Строки_ОСВ60», «Свод_по_группам», «Не_включено_в_свод», «Группа_затрат_записка».
@@ -26,6 +26,7 @@ from svod_osv60_core import (
     EXTRACT_DIR,
     build_svod_dataframe,
     build_zapiska_table,
+    find_osv60_file,
     load_osv60_rows,
     print_osv60_run_summary,
     write_osv60_workbook,
@@ -74,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--osv-path",
         type=Path,
         default=None,
-        help="Путь к .xls ОСВ 60 (по умолчанию _extract_osv/Osv_schet_60_{year}.xls)",
+        help="Путь к ОСВ 60 (.xls / .xlsx). По умолчанию — поиск в _extract_osv (см. find_osv60_file)",
     )
     p.add_argument(
         "--output",
@@ -100,7 +101,7 @@ def main() -> None:
     if out is not None and not out.is_absolute():
         out = BASE_DIR / out
     if osv is None:
-        osv = EXTRACT_DIR / f"Osv_schet_60_{args.year}.xls"
+        osv = find_osv60_file(args.year)
     if out is None:
         out = BASE_DIR / f"Osv60_soc_taxi_{args.year}.xlsx"
 
