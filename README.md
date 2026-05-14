@@ -187,7 +187,7 @@ python debug_svod.py
 - `python scripts/verify_arenda_lopakova_osv60.py` — сумма «На_соцтакси» по **Лопакова** в `Osv60_soc_taxi_2024.xlsx` vs **1 080 000** руб./год (договор аренды VW).
 - `python scripts/check_vznosy_rate_2024.py` — совокупная доля взносов к базе по каждому файлу `Nalogi-i-vznosy*.xlsx` (ориентир **7,2%**).
 - `python scripts/check_amort_protocol_numbers.py` — напоминание цифр Кт по счёту **02** из протокола и наличие `Osv_schet_02_{год}.xls`.
-- `python scripts/export_zayavki_gku_cst.py --year 2025` — реестр **«Заявки … ГКУ ЦСТ»** в `data/gku_cst/{год}/`, свод `zayavki_*_svod.xlsx` и CSV; связь с PDF «сводный отчёт» — в `docs/sverki/Zayavki_GKU_CST.md`.
+- `python scripts/recalc_fot_osv70_osv76.py --year 2024` — **ЗП из ОСВ 70** (очистка организаций/не-ФЛ) и те же **доли соцтакси**, что в `svod_personal_core`; ОСВ **76** — лист контроля **без суммирования** с 70 (`Fot_osv70_soc_taxi_{год}.xlsx`). Имя выходного файла **не задаёт** год: проверяется соответствие `Osv_schet_*_{год}.xls` и `--year` (иначе ошибка; исключение — `--allow-year-mismatch`). Для 2025 при неполной выгрузке в `_extract_osv` укажите полный `--osv70`.
 
 ## ОСВ по счёту 60 (прочие расходы для записки)
 
