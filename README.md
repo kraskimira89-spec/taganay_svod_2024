@@ -1,11 +1,13 @@
-# Свод ФОТ и страховых взносов за 2024 год
+# Свод ФОТ и страховых взносов (соцтакси, 2024–2025)
+
+Рабочая память сессии, цифры и открытые задачи: [docs/Протокол рабочей сессии.md](docs/Протокол%20рабочей%20сессии.md).
 
 Набор скриптов помогает собрать годовую сводную таблицу по сотрудникам:
 
-- ФОТ за 2024 год из файла `Svodnyi-po-ZP-za-2024-god.xlsx`;
-- страховые взносы из файлов `Nalogi-i-vznosy*.xlsx`;
-- итоговую таблицу `Itog_personal_vznosy_2024.xlsx`.
-- целевую таблицу `Personal_2024_soc_taxi.xlsx` с долями участия в соцтакси.
+- ФОТ за **2024** год из файла `Svodnyi-po-ZP-za-2024-god.xlsx` → `python svod_2024.py` → `Personal_2024_soc_taxi.xlsx`;
+- ФОТ за **2025** год из `Svodnyi-po-ZP-za-2025-god.xlsx` → `python svod_2025.py` → `Personal_2025_soc_taxi.xlsx` (общая логика в `svod_personal_core.py`);
+- страховые взносы из файлов `Nalogi-i-vznosy*.xlsx` (для 2025 при наличии предпочтительны имена с **`2025`** в названии, иначе — все `Nalogi-i-vznosy*.xlsx` или переменная **`VZNOSY_GLOB`**);
+- итоговые таблицы `Itog_personal_vznosy_{год}.xlsx` и целевые `Personal_{год}_soc_taxi.xlsx` с долями участия в соцтакси.
 
 ## Подготовка
 
@@ -13,12 +15,13 @@
 
 ```text
 Svodnyi-po-ZP-za-2024-god.xlsx
+Svodnyi-po-ZP-za-2025-god.xlsx
 Nalogi-i-vznosy-1.xlsx
 Nalogi-i-vznosy-2.xlsx
 ...
 ```
 
-Файлы по взносам могут быть помесячными. Главное, чтобы их имена начинались с `Nalogi-i-vznosy`.
+Файлы по взносам могут быть помесячными. Имена должны начинаться с `Nalogi-i-vznosy`. Для **2025** при нескольких годах в папке задайте маску: `set VZNOSY_GLOB=Nalogi-i-vznosy*2025*.xlsx` (Windows) перед `python svod_2025.py`.
 
 Для **полного документального комплекта** (пояснительная записка из одного репозитория): положите PDF в **`docs/dogovory/`** по [каноническому списку имён](docs/dogovory/README.md); связка с группами расходов — в разделе **«Документальное обоснование»** ниже.
 
@@ -37,9 +40,11 @@ pip install -r requirements.txt
 
 ```bash
 python svod_2024.py
+# при наличии исходников за 2025:
+python svod_2025.py
 ```
 
-После успешного запуска будут созданы файлы:
+После успешного запуска за **2024** будут созданы файлы:
 
 ```text
 Personal_2024_auto.xlsx
@@ -47,6 +52,8 @@ Vznosy_2024_auto.xlsx
 Itog_personal_vznosy_2024.xlsx
 Personal_2024_soc_taxi.xlsx
 ```
+
+После `python svod_2025.py` — аналогично с суффиксом **`_2025`** и листами `Персонал_2025_soc_taxi`, `Группа_затрат_2025`.
 
 Файл `Personal_2024_soc_taxi.xlsx` содержит:
 
@@ -81,7 +88,7 @@ Personal_2024_soc_taxi.xlsx
 |-----|----------|
 | 1 | Распаковать архив с ОСВ (например `ОСВ и свод.zip`) в `_extract_osv`. |
 | 2 | `python scripts/rename_extract_osv_files.py` — появятся `Osv_schet_60_2024.xls`, `Osv_schet_76_2024.xls` и др. |
-| 3 | `python svod_2024.py` — `Personal_2024_soc_taxi.xlsx`, листы по ФОТ и группам. |
+| 3 | `python svod_2024.py` — при необходимости `python svod_2025.py` (нужны `Svodnyi-po-ZP-za-2025-god.xlsx` и взносы за 2025). |
 | 4 | `python svod_osv60.py --year 2024` → `Osv60_soc_taxi_2024.xlsx`. Для 2025: `python svod_osv60.py --year 2025`. |
 | 5 | `python svod_reconcile_osv76.py --year 2024` → `Osv76_sverka_2024.xlsx` (свой файл: `--osv "…\файл.xlsx"`). |
 | 6 | `python svod_osv60.py --year 2025` и `python svod_reconcile_osv76.py --year 2025` — при наличии ОСВ за 2025. |
@@ -98,6 +105,7 @@ cd C:\taganay_svod_2024
 pip install -r requirements.txt
 python scripts/rename_extract_osv_files.py
 python svod_2024.py
+python svod_2025.py
 python svod_osv60.py --year 2024
 python svod_reconcile_osv76.py --year 2024
 python svod_osv60.py --year 2025
@@ -105,16 +113,18 @@ python svod_reconcile_osv76.py --year 2025
 python compare_osv60.py
 ```
 
-**Где исходники:** сводная ЗП и взносы — в **корне** проекта (`Svodnyi-po-ZP-za-2024-god.xlsx`, `Nalogi-i-vznosy*.xlsx`); выгрузки ОСВ из 1С — в **`_extract_osv`** (после `rename_extract_osv_files.py` — имена вида `Osv_schet_60_2024.xls`).
+**Где исходники:** сводные ЗП — `Svodnyi-po-ZP-za-{год}-god.xlsx` в **корне**; взносы — `Nalogi-i-vznosy*.xlsx`; выгрузки ОСВ из 1С — в **`_extract_osv`** (после `rename_extract_osv_files.py` — имена вида `Osv_schet_60_2024.xls`).
 
 **Что на выходе (основное):**
 
 | Файл | Назначение |
 |------|------------|
-| `Personal_2024_soc_taxi.xlsx` | ФОТ+взносы, доли соцтакси; листы `Персонал_2024_soc_taxi`, `Группа_затрат_2024` |
+| `Personal_2024_soc_taxi.xlsx` | ФОТ+взносы 2024, доли соцтакси; листы `Персонал_2024_soc_taxi`, `Группа_затрат_2024` |
+| `Personal_2025_soc_taxi.xlsx` | То же за **2025** (`svod_2025.py`), листы `Персонал_2025_soc_taxi`, `Группа_затрат_2025` |
 | `Osv60_soc_taxi_{год}.xlsx` | Прочие расходы по 60: см. листы ниже |
-| `Osv76_sverka_{год}.xlsx` | Сверка физлиц ОСВ 76 с персоналом (`Сверка_76`, `Справочник_ФИО`) |
-| `Svod_60_2024_2025.xlsx` | Сравнение групп записки 2024 vs 2025 (`Сравнение_60`) |
+| `Osv76_sverka_{год}.xlsx` | **Сверка** ОСВ 76 с персоналом (не входит в себестоимость; см. шапку `svod_reconcile_osv76.py`) |
+| `Svod_60_2024_2025.xlsx` | Сравнение групп записки 2024 vs 2025 (`compare_osv60`) — **готово к приложению** к пояснительной по счёту 60 |
+| `Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx` и **`Svod-2024-2025.xlsx`** | Один файл: копия сводного баланса из отчётов (`sync_svod_2024_2025_from_otchety.py`); второе имя — как в [протоколе](docs/Протокол%20рабочей%20сессии.md) |
 
 **Листы `Osv60_soc_taxi_{год}.xlsx`:**
 
@@ -125,7 +135,7 @@ python compare_osv60.py
 | `Не_включено_в_свод` | Строки без правила классификации / банки |
 | `Группа_затрат_записка` | 7 строк + итог для вставки в пояснительную записку |
 
-Скрипт **`svod_osv60.py`** внутри строит отчёт через функции `load_osv60` → `build_svod` → таблица записки → `save_report` (см. модуль `svod_osv60.py`). Правила по статьям — `config_osv60.py`, по контрагентам — `svod_osv60_core.py`. **Доля косвенных (k)** по годам — `config_allocation.py` (источник: приходы по соцуслугам, не счёт 62); для ФОТ админ‑части в `svod_2024.py` используется тот же коэффициент за 2024 год.
+Скрипт **`svod_osv60.py`** внутри строит отчёт через функции `load_osv60` → `build_svod` → таблица записки → `save_report` (см. модуль `svod_osv60.py`). Правила по статьям — `config_osv60.py`, по контрагентам — `svod_osv60_core.py`. **Доля косвенных (k)** по годам — `config_allocation.py`; для админ-долей ФОТ используется **`get_soc_taxi_share(год)`** в [`svod_personal_core.py`](svod_personal_core.py).
 
 ## Документальное обоснование
 
@@ -166,7 +176,13 @@ python compare_osv60.py
 python debug_svod.py
 ```
 
-Он покажет реальные названия листов и колонок в файле `Svodnyi-po-ZP-za-2024-god.xlsx`. После этого можно поправить названия колонок в `svod_2024.py`.
+Он покажет реальные названия листов и колонок в файле `Svodnyi-po-ZP-za-2024-god.xlsx`. После этого при необходимости поправьте ожидаемые имена колонок в `svod_personal_core.py` (или исходный Excel).
+
+## Контрольные скрипты (протокол)
+
+- `python scripts/verify_arenda_lopakova_osv60.py` — сумма «На_соцтакси» по **Лопакова** в `Osv60_soc_taxi_2024.xlsx` vs **1 080 000** руб./год (договор аренды VW).
+- `python scripts/check_vznosy_rate_2024.py` — совокупная доля взносов к базе по каждому файлу `Nalogi-i-vznosy*.xlsx` (ориентир **7,2%**).
+- `python scripts/check_amort_protocol_numbers.py` — напоминание цифр Кт по счёту **02** из протокола и наличие `Osv_schet_02_{год}.xls`.
 
 ## ОСВ по счёту 60 (прочие расходы для записки)
 
@@ -191,27 +207,31 @@ python svod_osv60.py --year 2024 --osv-path "E:\ЦИП Таганай\6-БУХГ
 
 - **60 за 2024:** `python scripts/sync_osv60_vernaya_2024.py` (`OSV60_VERNAYA_2024` при необходимости).
 - **60 за 2025:** `python scripts/sync_osv60_vernaya_2025.py` (`OSV60_VERNAYA_2025`); исходник по умолчанию — `ОБС верно по счету 60 за 2025 г.xls`.
+- **70 за 2024:** `python scripts/sync_osv70_vernaya_2024.py` (`OSV70_VERNAYA_2024`).
 - **70 за 2025** (архив в проекте, свода по 70 пока нет): `python scripts/sync_osv70_vernaya_2025.py` (`OSV70_VERNAYA_2025`); копия как `Osv_schet_70_2025.xls`.
+- **01 и 02 (ОС и амортизация):** задайте `OSV01_2024`, `OSV02_2024`, `OSV01_2025`, `OSV02_2025` и выполните `python scripts/sync_osv_01_02.py`. Контроль цифр из протокола: `python scripts/check_amort_protocol_numbers.py`.
 - **Банковские выписки** (Сбер, ВТБ, 2024–2025): `python scripts/sync_bank_vypiski.py` → `docs/bank_vypiski/` (`BANK_VYPISKI_*` при необходимости).
 
 Результаты: `Osv60_soc_taxi_2024.xlsx` / `Osv60_soc_taxi_2025.xlsx` — см. раздел **«Листы Osv60_soc_taxi»** выше. После переименования в `_extract_osv` также появляется `Svod_finansovye_pokazateli_2024.xlsx`.
 
 **Сравнение 2024 и 2025:** `python compare_osv60.py` → `Svod_60_2024_2025.xlsx`.
 
-Копия свода из папки отчётов (`ОСВ и свод/Свод 2024-2025 .xlsx`): `python scripts/sync_svod_2024_2025_from_otchety.py` → в корне проекта **`Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx`** (это не то же самое, что машинный `Svod_60_2024_2025.xlsx` из `compare_osv60.py`).
+Копия свода из папки отчётов (`ОСВ и свод/Свод 2024-2025 .xlsx`): `python scripts/sync_svod_2024_2025_from_otchety.py` → в корне **`Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx`** и дубликат **`Svod-2024-2025.xlsx`** (имя как в протоколе; содержимое одинаковое). Машинное сравнение групп по счёту 60 — это отдельный файл **`Svod_60_2024_2025.xlsx`** из `compare_osv60.py`.
 
 В свод попадают только строки с известным правилом (остальное — на лист исключений). Топливом по контрагенту считаются **Ликард** и **Газпромнефть** (АЗС); прочие «Газпром*» — **коммунальные**; на косвенные расходы применяется доля приходов по соцуслугам из **`config_allocation.py`** (**2024:** **0,78**; **2025:** **0,76** — не из счёта 62). Правки по статьям — `config_osv60.py`, по контрагентам — `svod_osv60_core.py`.
 
 ## Сверка ОСВ по счёту 76 с персоналом
 
-После `rename_extract_osv_files.py` и наличия `Personal_2024_soc_taxi.xlsx`:
+Счёт **76** в отчёте используется **только для сверки** с реестром ФЛ (нет задвоения с ФОТ по 70). См. описание в `svod_reconcile_osv76.py`.
+
+После `rename_extract_osv_files.py` и файла **`Personal_{год}_soc_taxi.xlsx`**:
 
 ```bash
 python svod_reconcile_osv76.py --year 2024
 python svod_reconcile_osv76.py --year 2025
 ```
 
-По умолчанию читается `Personal_2024_soc_taxi.xlsx` (лист `Персонал_2024_soc_taxi`); для другого файла: `--personal`. Свой Excel с колонкой «роль»: `--osv "…\файл.xlsx" --sheet-osv Лист1`.
+По умолчанию: **`Personal_{год}_soc_taxi.xlsx`**, лист **`Персонал_{год}_soc_taxi`**. Для произвольного файла: `--personal`, `--sheet-personal`. Свой Excel с колонкой «роль»: `--osv "…\файл.xlsx" --sheet-osv Лист1`.
 
 ## Пакет для Perplexity / внешнего ИИ
 

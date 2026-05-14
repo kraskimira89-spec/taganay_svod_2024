@@ -1,5 +1,9 @@
 """
-Сверка физлиц из ОСВ по счёту 76 с листом персонала в Personal_2024_soc_taxi.xlsx.
+Сверка физлиц из ОСВ по счёту 76 с листом персонала в Personal_{year}_soc_taxi.xlsx.
+
+ВАЖНО (методика, протокол рабочей сессии): счёт 76 используется только для СВЕРКИ
+с физлицами (ГПХ, прочие расчёты). Результаты этой сверки НЕ входят в себестоимость
+соцтакси и НЕ суммируются с ФОТ по счёту 70 — иначе возможно задвоение трудовых затрат.
 
 Ищет ФИО из колонки контрагента, сопоставляет с колонкой «ФИО» и проставляет:
 «уже в ФОТ» / «вне ФОТ» / «не ФЛ (организация)».
@@ -9,6 +13,7 @@
 
 Запуск:
   python svod_reconcile_osv76.py --year 2024
+  python svod_reconcile_osv76.py --year 2025
   python svod_reconcile_osv76.py --year 2025 --osv "…" --out Osv76_sverka_2025.xlsx
   python svod_reconcile_osv76.py --osv "C:\\path\\OSV_76_moi.xlsx" --sheet-osv Лист1
 """
@@ -23,7 +28,6 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent
 EXTRACT_DIR = BASE_DIR / "_extract_osv"
-PERSONAL_DEFAULT = BASE_DIR / "Personal_2024_soc_taxi.xlsx"
 
 ORG_MARKERS = (
     "ООО",
@@ -80,13 +84,11 @@ def _detect_role_column(df: pd.DataFrame) -> int | None:
         r"водител|соц\.\s*работ|соцработ|страховк|роль",
         flags=re.IGNORECASE,
     )
-    # строка заголовка «Роль»
     for r in range(min(12, len(df))):
         for c in range(df.shape[1]):
             v = df.iloc[r, c]
             if isinstance(v, str) and "роль" in v.lower():
                 return c
-    # в теле: считаем попадания по столбцам в строках 8–40
     best_c, best_score = None, 0
     start = min(8, len(df) - 1)
     end = min(45, len(df))
@@ -155,7 +157,6 @@ def match_status(name: str, personal: set[str]) -> str:
     n = norm_fio(name)
     if n in personal:
         return "уже в ФОТ"
-    # частичное: все слова из ОСВ входят в одну строку персонала
     words = [w for w in n.split() if len(w) > 1]
     if len(words) >= 2:
         for p in personal:
@@ -165,9 +166,14 @@ def match_status(name: str, personal: set[str]) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Сверка ОСВ-76 с персоналом соцтакси")
-    ap.add_argument("--year", type=int, default=2024, help="Год (подставляется в пути по умолчанию)")
-    ap.add_argument("--personal", type=Path, default=PERSONAL_DEFAULT, help="Файл с персоналом")
+    ap = argparse.ArgumentParser(description="Сверка ОСВ-76 с персоналом соцтакси (только сверка, не себестоимость)")
+    ap.add_argument("--year", type=int, default=2024, help="Год (пути по умолчанию к ОСВ и персоналу)")
+    ap.add_argument(
+        "--personal",
+        type=Path,
+        default=None,
+        help="Файл с персоналом (по умолчанию Personal_{year}_soc_taxi.xlsx)",
+    )
     ap.add_argument(
         "--osv",
         type=Path,
@@ -180,28 +186,41 @@ def main() -> None:
         default=None,
         help="Выходной .xlsx (по умолчанию Osv76_sverka_{year}.xlsx)",
     )
-    ap.add_argument("--sheet-personal", default="Персонал_2024_soc_taxi")
+    ap.add_argument(
+        "--sheet-personal",
+        default=None,
+        help="Лист персонала (по умолчанию Персонал_{year}_soc_taxi)",
+    )
     ap.add_argument("--sheet-osv", default=None, help="Лист Excel с ОСВ (если не первый)")
     args = ap.parse_args()
 
+    year = args.year
+    personal_path = args.personal
+    if personal_path is None:
+        personal_path = BASE_DIR / f"Personal_{year}_soc_taxi.xlsx"
+    elif not personal_path.is_absolute():
+        personal_path = BASE_DIR / personal_path
+
+    sheet_p = args.sheet_personal or f"Персонал_{year}_soc_taxi"
+
     osv = args.osv
     if osv is None:
-        osv = EXTRACT_DIR / f"Osv_schet_76_{args.year}.xls"
+        osv = EXTRACT_DIR / f"Osv_schet_76_{year}.xls"
     elif not osv.is_absolute():
         osv = BASE_DIR / osv
 
     out_file = args.out
     if out_file is None:
-        out_file = BASE_DIR / f"Osv76_sverka_{args.year}.xlsx"
+        out_file = BASE_DIR / f"Osv76_sverka_{year}.xlsx"
     elif not out_file.is_absolute():
         out_file = BASE_DIR / out_file
 
     if not osv.is_file():
         raise SystemExit(
-            f"Нет файла ОСВ 76: {osv}. Укажите --osv или положите Osv_schet_76_{args.year}.xls в _extract_osv"
+            f"Нет файла ОСВ 76: {osv}. Укажите --osv или положите Osv_schet_76_{year}.xls в _extract_osv"
         )
 
-    personal = load_personal_fio(args.personal, args.sheet_personal)
+    personal = load_personal_fio(personal_path, sheet_p)
     detail = load_osv76_rows(osv, args.sheet_osv)
 
     detail["Статус_сверки_с_ФОТ"] = detail["Контрагент"].apply(lambda x: match_status(x, personal))
@@ -213,7 +232,7 @@ def main() -> None:
         )
 
     print("ОСВ:", osv)
-    print("Персонал:", args.personal)
+    print("Персонал:", personal_path, "/", sheet_p)
     print("Создан:", out_file)
     print(detail["Статус_сверки_с_ФОТ"].value_counts().to_string())
 

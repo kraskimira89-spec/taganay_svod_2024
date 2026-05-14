@@ -20,6 +20,8 @@ PREFIX = "taganay_perplexity_2024_2025"
 
 PY_FILES = [
     "svod_2024.py",
+    "svod_2025.py",
+    "svod_personal_core.py",
     "svod_osv60.py",
     "svod_osv60_core.py",
     "config_osv60.py",
