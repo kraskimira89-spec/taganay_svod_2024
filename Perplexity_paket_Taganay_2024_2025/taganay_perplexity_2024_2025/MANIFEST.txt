@@ -1,0 +1,59 @@
+Пакет для Perplexity: Таганай — своды 2024/2025, сравнение, пояснительная записка (данные и код).
+Дата сборки: 2026-05-14
+
+Состав (пути внутри архива):
+
+taganay_perplexity_2024_2025/Itog_personal_vznosy_2024.xlsx
+taganay_perplexity_2024_2025/Nalogi-i-vznosy-1.xlsx
+taganay_perplexity_2024_2025/Osv60_soc_taxi_2024.xlsx
+taganay_perplexity_2024_2025/Osv60_soc_taxi_2025.xlsx
+taganay_perplexity_2024_2025/Osv76_sverka_2024.xlsx
+taganay_perplexity_2024_2025/Osv76_sverka_2025.xlsx
+taganay_perplexity_2024_2025/Personal_2024_auto.xlsx
+taganay_perplexity_2024_2025/Personal_2024_soc_taxi.xlsx
+taganay_perplexity_2024_2025/README.md
+taganay_perplexity_2024_2025/Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx
+taganay_perplexity_2024_2025/Svod_60_2024_2025.xlsx
+taganay_perplexity_2024_2025/Svodnyi-po-ZP-za-2024-god.pdf
+taganay_perplexity_2024_2025/Svodnyi-po-ZP-za-2024-god.xlsx
+taganay_perplexity_2024_2025/Vznosy_2024_aprel.xlsx
+taganay_perplexity_2024_2025/Vznosy_2024_auto.xlsx
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_60_2024.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_60_2025.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_62_2024.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_62_2025.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_70_2024.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_70_2025.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_76_2024.xls
+taganay_perplexity_2024_2025/_extract_osv/Osv_schet_76_2025.xls
+taganay_perplexity_2024_2025/_extract_osv/Svod_finansovye_pokazateli_2024.xlsx
+taganay_perplexity_2024_2025/beseda.md
+taganay_perplexity_2024_2025/compare_osv60.py
+taganay_perplexity_2024_2025/config_allocation.py
+taganay_perplexity_2024_2025/config_osv60.py
+taganay_perplexity_2024_2025/debug_svod.py
+taganay_perplexity_2024_2025/requirements.txt
+taganay_perplexity_2024_2025/scripts/build_perplexity_bundle.py
+taganay_perplexity_2024_2025/scripts/rename_extract_osv_files.py
+taganay_perplexity_2024_2025/scripts/sync_osv60_vernaya_2024.py
+taganay_perplexity_2024_2025/scripts/sync_osv60_vernaya_2025.py
+taganay_perplexity_2024_2025/scripts/sync_osv70_vernaya_2025.py
+taganay_perplexity_2024_2025/scripts/sync_svod_2024_2025_from_otchety.py
+taganay_perplexity_2024_2025/svod_2024.py
+taganay_perplexity_2024_2025/svod_osv60.py
+taganay_perplexity_2024_2025/svod_osv60_core.py
+taganay_perplexity_2024_2025/svod_personal.py
+taganay_perplexity_2024_2025/svod_reconcile_osv76.py
+taganay_perplexity_2024_2025/svod_vznosy.py
+
+Кратко по назначению:
+- Svodnyi-po-ZP-za-2024-god.xlsx / .pdf — исходная сводная по ЗП;
+- Nalogi-i-vznosy*.xlsx — взносы;
+- Personal_2024_soc_taxi.xlsx — ФОТ+взносы, доли соцтакси, лист Группа_затрат_2024;
+- Osv60_soc_taxi_YYYY.xlsx — прочие расходы по сч. 60, лист Группа_затрат_записка;
+- Osv76_sverka_YYYY.xlsx — сверка ОСВ 76 с персоналом;
+- Svod_60_2024_2025.xlsx — сравнение групп записки (compare_osv60);
+- Svod_2024_2025_iz_arhiva_OSV_i_svod.xlsx — копия свода из папки отчётов (если синхронизировали);
+- _extract_osv/Osv_schet_* — выгрузки ОСВ из 1С;
+- config_allocation.py — доли приходов по соцуслугам (косвенные: 2024=0.78, 2025=0.76);
+- README.md — воспроизводимый pipeline.
