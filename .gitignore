@@ -12,7 +12,11 @@ ENV/
 # --- IDE / редактор ---
 .idea/
 .vscode/
-.cursor/
+.cursor/*
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/hooks/auto-commit-push.ps1
+.cursor/hooks/*.log
 
 # --- секреты и локальная среда ---
 .env
