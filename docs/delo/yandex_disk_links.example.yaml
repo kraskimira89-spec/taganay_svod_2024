@@ -1,0 +1,13 @@
+# Скопируйте в yandex_disk_links.yaml и вставьте публичные ссылки.
+# Файл yandex_disk_links.yaml в .gitignore (не попадает в GitHub).
+#
+# После заполнения:
+#   python scripts/apply_yandex_links_to_opis.py
+
+archives:
+  # Приложение 11.1 — docs/Поставщики (все PDF)
+  postavshchiki: ""
+
+  # Приложения 12.3 / 12.4 — исходные сканы разнарядок
+  raznaryadki_2024: ""
+  raznaryadki_2025: ""
