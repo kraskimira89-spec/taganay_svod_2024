@@ -99,3 +99,5 @@ docs/delo/yandex_disk_links.yaml
 Дело3а-78-2026Таганай/**/*.zip
 Дело3а-78-2026Таганай/**/*.rar
 Дело3а-78-2026Таганай/**/*.7z
+# Кэш PDF (delo_case_vedomosti.py), не для репозитория
+Дело3а-78-2026Таганай/**/.delo_vedomosti_pdf_pages.json
