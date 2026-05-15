@@ -105,8 +105,8 @@ def suggest_document_title(filename: str) -> str:
     text = stem.replace("_", " ").strip()
     text = re.sub(r"\s+", " ", text)
     text = text.replace(" - ", " — ")
-    # номера вида 22-25, 20-26
-    text = re.sub(r"\b(\d{2}\s*-\s*\d{2})\b", r"№ \1", text)
+    # номера вида 22-25, 20-26; не дублируем уже имеющийся знак "№"
+    text = re.sub(r"(?<!№)(?<!№ )\b(\d{2}\s*-\s*\d{2})\b", r"№ \1", text)
 
     if is_dir:
         if text:
@@ -226,7 +226,8 @@ def create_xlsx(
 ) -> Path:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"Ведомость {section_num}"
+    safe_sheet_section = re.sub(r"[\[\]:*?/\\]", "_", section_num).strip(" ._") or "unknown"
+    ws.title = f"Ведомость {safe_sheet_section}"[:31]
 
     icon = section_info["icon"]
     ws["B2"] = f"{icon}  ВЕДОМОСТЬ ПРИЛОЖЕНИЙ — РАЗДЕЛ {section_num}"
@@ -448,8 +449,9 @@ def main() -> None:
         f"подпапок: {len([f for f in files if f['is_dir']])}"
     )
 
+    safe_section_num = re.sub(r'[<>:"/\\\\|?*]', "_", section_num).strip(" ._") or "unknown"
     safe_name = re.sub(r'[<>:"/\\\\|?*]', "_", section_info["name"].replace(" ", "_"))
-    output_name = f"00_Ведомость_{section_num}_{safe_name}.xlsx"
+    output_name = f"00_Ведомость_{safe_section_num}_{safe_name}.xlsx"
     output_path = folder / output_name
 
     create_xlsx(folder, files, section_num, section_info, output_path, yandex_base=yandex)
