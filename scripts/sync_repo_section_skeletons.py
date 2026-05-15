@@ -19,8 +19,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from delo_case_vedomosti import (  # noqa: E402
     OUTPUT_NAME,
     _write_anchor,
+    build_pdf_page_map,
 )
-from sozdat_vedomost_pdf import build_pdf_page_map, iter_inventory_files  # noqa: E402
+from sozdat_vedomost_pdf import iter_inventory_files  # noqa: E402
 
 SECTION_FOLDERS = [
     "01_Иск",
@@ -47,12 +48,12 @@ def main() -> None:
 
     p11 = BASE / "11_Поставщики"
     p111 = p11 / "11.1_Поставщики"
+    p11.mkdir(parents=True, exist_ok=True)
     p111.mkdir(parents=True, exist_ok=True)
-    for pth in (p111 / "README.md",):
+    for pth in (p11 / "README.md", p111 / "README.md"):
         if not pth.exists():
             pth.write_bytes(b"")
     for anchor in (p11, p111):
-        anchor.mkdir(parents=True, exist_ok=True)
         paths = list(iter_inventory_files(anchor))
         pdfs = [p for p in paths if p.suffix.lower() == ".pdf"]
         page_cache = build_pdf_page_map(pdfs, BASE, disk)

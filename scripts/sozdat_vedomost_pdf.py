@@ -24,6 +24,9 @@ BASE = Path(__file__).resolve().parent.parent
 ARIAL = "Arial"
 C_BRAND = "01696F"
 C_ROSE = "F5E3EC"
+C_GREEN = "E8F1E3"
+C_YELLOW = "FFF6CC"
+VEDOMOST_DATA_ROW_HEIGHT = 32
 
 # Excel: формат даты только строчными d/m/y; DD.MM.YYYY не распознаётся — ячейка как число.
 XLSX_DATE_SHORT = "dd.mm.yyyy"
@@ -50,6 +53,31 @@ HEADER_FONT = Font(name=ARIAL, size=11, bold=True, color="FFFFFF")
 
 PAGE_HEADER_MAIN = "Кол-во\nстраниц"
 PAGE_HEADER_GROUP = "Кол-во стр.\n(сумма)"
+
+
+def apply_vedomost_page_setup(ws, print_title_rows: str) -> None:
+    """Альбомная A4, вписать по ширине, поля и повтор строк шапки при печати."""
+    ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_margins.left = 0.3
+    ws.page_margins.right = 0.3
+    ws.print_title_rows = print_title_rows
+
+
+def vedomost_vertical_center_block(
+    ws, row_start: int, row_end: int, col_start: int, col_end: int
+) -> None:
+    for r in range(row_start, row_end + 1):
+        for c in range(col_start, col_end + 1):
+            cell = ws.cell(row=r, column=c)
+            a = cell.alignment
+            h = a.horizontal if a else "general"
+            wt = bool(a.wrap_text) if a else False
+            cell.alignment = Alignment(horizontal=h, vertical="center", wrap_text=wt)
+
 
 # Порог ширины столбца openpyxl (~4 см при 11 pt в Excel)
 WRAP_WIDTH_THRESHOLD_UNITS = 14.2
@@ -265,15 +293,21 @@ def create_xlsx(
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = BORDER_ALL
 
+    ws.row_dimensions[8].height = VEDOMOST_DATA_ROW_HEIGHT
+    fill_green = PatternFill(start_color=C_GREEN, end_color=C_GREEN, fill_type="solid")
+    fill_yellow = PatternFill(start_color=C_YELLOW, end_color=C_YELLOW, fill_type="solid")
+
     sorted_recs = sorted(records, key=lambda r: (r["subfolder"].lower(), r["name"].lower()))
     for i, rec in enumerate(sorted_recs, 1):
         r = 8 + i
         ws[f"A{r}"] = i
         ws[f"A{r}"].alignment = Alignment(horizontal="center")
         ws[f"A{r}"].border = BORDER_ALL
+        ws[f"A{r}"].fill = fill_green
         ws[f"B{r}"] = rec["subfolder"]
         ws[f"B{r}"].font = Font(name=ARIAL, size=10, bold=True)
         ws[f"B{r}"].border = BORDER_ALL
+        ws[f"B{r}"].fill = fill_yellow
         ws[f"C{r}"] = rec["name"]
         ws[f"C{r}"].font = Font(name="Consolas", size=9)
         ws[f"C{r}"].border = BORDER_ALL
@@ -351,6 +385,8 @@ def create_xlsx(
             ws2[f"{c}{r}"].number_format = XLSX_DATE_SHORT
         for c in "BCDEFGH":
             ws2[f"{c}{r}"].border = BORDER_ALL
+        ws2[f"B{r}"].fill = fill_green
+        ws2[f"C{r}"].fill = fill_yellow
 
     last_group_row = 4 + len(groups)
     total_r = last_group_row + 1
@@ -381,6 +417,18 @@ def create_xlsx(
         8,
         vertical_center_rows=frozenset({2, 4}),
     )
+
+    for r in range(8, last_row + 1):
+        ws.row_dimensions[r].height = VEDOMOST_DATA_ROW_HEIGHT
+    if last_row >= 9:
+        vedomost_vertical_center_block(ws, 9, last_row, 1, 7)
+    apply_vedomost_page_setup(ws, "2:8")
+
+    for r in range(4, last_group_row + 1):
+        ws2.row_dimensions[r].height = VEDOMOST_DATA_ROW_HEIGHT
+    if last_group_row >= 5:
+        vedomost_vertical_center_block(ws2, 5, last_group_row, 2, 8)
+    apply_vedomost_page_setup(ws2, "2:4")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
@@ -564,6 +612,10 @@ def create_xlsx_inventory(
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = BORDER_ALL
 
+    ws.row_dimensions[8].height = VEDOMOST_DATA_ROW_HEIGHT
+    fill_green = PatternFill(start_color=C_GREEN, end_color=C_GREEN, fill_type="solid")
+    fill_yellow = PatternFill(start_color=C_YELLOW, end_color=C_YELLOW, fill_type="solid")
+
     sorted_recs = sorted(
         records, key=lambda r: (r["subfolder"].lower(), r["name"].lower())
     )
@@ -572,9 +624,11 @@ def create_xlsx_inventory(
         ws[f"A{r}"] = i
         ws[f"A{r}"].alignment = Alignment(horizontal="center")
         ws[f"A{r}"].border = BORDER_ALL
+        ws[f"A{r}"].fill = fill_green
         ws[f"B{r}"] = rec["subfolder"]
         ws[f"B{r}"].font = Font(name=ARIAL, size=10, bold=True)
         ws[f"B{r}"].border = BORDER_ALL
+        ws[f"B{r}"].fill = fill_yellow
         ws[f"C{r}"] = rec["name"]
         ws[f"C{r}"].font = Font(name="Consolas", size=9)
         ws[f"C{r}"].border = BORDER_ALL
@@ -655,6 +709,8 @@ def create_xlsx_inventory(
             ws2[f"{c}{r}"].number_format = XLSX_DATE_SHORT
         for c in "BCDEFGH":
             ws2[f"{c}{r}"].border = BORDER_ALL
+        ws2[f"B{r}"].fill = fill_green
+        ws2[f"C{r}"].fill = fill_yellow
 
     last_group_row = 4 + len(groups)
     total_r = last_group_row + 1
@@ -685,6 +741,18 @@ def create_xlsx_inventory(
         8,
         vertical_center_rows=frozenset({2, 4}),
     )
+
+    for r in range(8, last_row + 1):
+        ws.row_dimensions[r].height = VEDOMOST_DATA_ROW_HEIGHT
+    if last_row >= 9:
+        vedomost_vertical_center_block(ws, 9, last_row, 1, 7)
+    apply_vedomost_page_setup(ws, "2:8")
+
+    for r in range(4, last_group_row + 1):
+        ws2.row_dimensions[r].height = VEDOMOST_DATA_ROW_HEIGHT
+    if last_group_row >= 5:
+        vedomost_vertical_center_block(ws2, 5, last_group_row, 2, 8)
+    apply_vedomost_page_setup(ws2, "2:4")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)

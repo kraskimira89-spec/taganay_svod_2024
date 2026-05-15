@@ -35,8 +35,7 @@ C_BRAND = "01696F"
 XLSX_DATE_SHORT = "dd.mm.yyyy"
 C_RED = "A12C7B"
 C_GREEN = "E8F1E3"
-C_YELLOW = "FFF6CC"
-C_SUGGEST = "E8F4EC"  # светло-зелёный: авто-наименование
+C_YELLOW = "FFF6CC"  # «Наименование документа» — как в образце (ручная правка)
 C_ROSE = "F5E3EC"
 
 THIN = Side(style="thin", color="B0B0B0")
@@ -325,7 +324,7 @@ def create_xlsx(
         ws[f"C{r}"].font = Font(name=ARIAL, size=10)
         ws[f"C{r}"].alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
         ws[f"C{r}"].border = BORDER
-        ws[f"C{r}"].fill = PatternFill(start_color=C_SUGGEST, end_color=C_SUGGEST, fill_type="solid")
+        ws[f"C{r}"].fill = PatternFill(start_color=C_YELLOW, end_color=C_YELLOW, fill_type="solid")
 
         ws[f"D{r}"] = f["name"]
         ws[f"D{r}"].font = Font(name="Consolas", size=9)
