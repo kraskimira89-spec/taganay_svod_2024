@@ -7,9 +7,10 @@
 из PDF не извлекается (скан без OCR). Ведомость = реестр файлов + своды
 по месяцам и направлениям (Салехард, Лабытнанги и т.д.).
 
-Запуск:
+Устарело: используйте build_raznaryadki_vedomost.py (формат «Ведомость PDF»).
+
+Запуск (старый упрощённый реестр):
   python scripts/build_raznaryadki_svod.py
-  python scripts/build_raznaryadki_svod.py --year 2025
 """
 
 from __future__ import annotations

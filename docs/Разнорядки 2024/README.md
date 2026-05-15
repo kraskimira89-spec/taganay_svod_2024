@@ -7,4 +7,4 @@
 | **Яндекс.Диск** | прил. **12.3**, ссылка в `docs/delo/yandex_disk_links.yaml` |
 | **GitHub** | `data/delo_registers/12.1_Сводная_ведомость_разнарядок_2024.xlsx` |
 
-`python scripts/build_raznaryadki_svod.py --year 2024`
+`python scripts/build_raznaryadki_vedomost.py` (ведомость PDF + итоги по месяцам)

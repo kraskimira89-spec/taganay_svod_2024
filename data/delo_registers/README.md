@@ -14,7 +14,7 @@
 
 ```bash
 python scripts/build_postavshchiki_svod.py
-python scripts/build_raznaryadki_svod.py
+python scripts/build_raznaryadki_vedomost.py
 python scripts/setup_delo_github_policy.py
 python scripts/apply_yandex_links_to_opis.py
 ```
