@@ -30,12 +30,15 @@ YANDEX_KEYS: dict[str, str | None] = {
     "12.2": None,
     "12.3": "raznaryadki_2024",
     "12.4": "raznaryadki_2025",
+    "13.1": "putevye_listy_2024",
+    "13.2": None,
 }
 
 REGISTER_FILES = {
     "11.2": "11.2_Сводная_ведомость_поставщиков.xlsx",
     "12.1": "12.1_Сводная_ведомость_разнарядок_2024.xlsx",
     "12.2": "12.2_Сводная_ведомость_разнарядок_2025.xlsx",
+    "13.2": "13.2_Сводная_ведомость_путевые_листы_2024.xlsx",
 }
 
 
@@ -146,6 +149,14 @@ def upsert_opis_archive_rows() -> None:
             "(только Яндекс.Диск)",
             "raznaryadki_2025",
         ),
+        (
+            "13.1",
+            "13 Путевые листы",
+            "Исходные PDF путевых листов за 2024 год",
+            "0",
+            "(только Яндекс.Диск; см. кол. I)",
+            "putevye_listy_2024",
+        ),
     ]
 
     insert_at = ws.max_row
@@ -211,7 +222,9 @@ def apply_yandex_links_to_opis() -> int:
     for app_id, reg_file in REGISTER_FILES.items():
         row = _row_by_filename(ws, reg_file)
         if row:
-            ref = {"11.2": "11.1", "12.1": "12.3", "12.2": "12.4"}.get(app_id)
+            ref = {"11.2": "11.1", "12.1": "12.3", "12.2": "12.4", "13.2": "13.1"}.get(
+                app_id
+            )
             note = f"исходники: приложение {ref}" if ref else ""
             if note and not ws.cell(row, OPIS_COL_YANDEX).value:
                 ws.cell(row, OPIS_COL_YANDEX, note)
@@ -228,7 +241,12 @@ def update_register_opis_row(app_id: str, title: str, sheets: int) -> None:
     ws = wb[OPIS_SHEET]
     row = _row_by_filename(ws, fname)
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    section = "11 Поставщики" if app_id.startswith("11") else "12 Разнарядки"
+    if app_id.startswith("11"):
+        section = "11 Поставщики"
+    elif app_id.startswith("13"):
+        section = "13 Путевые листы"
+    else:
+        section = "12 Разнарядки"
     if row is None:
         row = ws.max_row + 1
         while row > OPIS_HEADER_ROW and not ws.cell(row, 2).value:
@@ -240,7 +258,7 @@ def update_register_opis_row(app_id: str, title: str, sheets: int) -> None:
     ws.cell(row, 5, app_id)
     ws.cell(row, 6, sheets)
     ws.cell(row, 7, fname)
-    ref = {"11.2": "11.1", "12.1": "12.3", "12.2": "12.4"}.get(app_id)
+    ref = {"11.2": "11.1", "12.1": "12.3", "12.2": "12.4", "13.2": "13.1"}.get(app_id)
     if ref:
         ws.cell(row, OPIS_COL_YANDEX, f"исходники PDF: приложение {ref} (Яндекс.Диск)")
     wb.save(OPIS_PATH)

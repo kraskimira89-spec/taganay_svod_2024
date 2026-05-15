@@ -1,0 +1,198 @@
+{
+  "sections_in_case": {
+    "01_Иск": 0,
+    "02_Отчёты": 2,
+    "03_Учредительные": 0,
+    "04_Соглашения": 5,
+    "05_ЕКЖЯ": 0,
+    "06_Финансы": 27,
+    "07_Кадры": 0,
+    "08_Аренда": 0,
+    "09_Нормативка": 12,
+    "10_Зарплаты": 16,
+    "11_Поставщики": 12,
+    "12_Разнарядки": 2
+  },
+  "items": [
+    {
+      "status": "ok",
+      "detail": "файл 1767 КБ",
+      "id": "02.1",
+      "name": "Обоснование 2024 PDF",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 1330 КБ",
+      "id": "02.2",
+      "name": "Обоснование 2025 PDF",
+      "required": true
+    },
+    {
+      "status": "missing",
+      "detail": "не найдено",
+      "id": "02.3",
+      "name": "Отчёт №3 сравнительный",
+      "required": false
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 38 файлов",
+      "id": "04.1-04.5",
+      "name": "Соглашения 2025",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 27 файлов",
+      "id": "06.1",
+      "name": "ОСВ 60 2025",
+      "required": false
+    },
+    {
+      "status": "ok",
+      "detail": "файл 574 КБ",
+      "id": "06.3",
+      "name": "ВТБ 2024",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 819 КБ",
+      "id": "06.3b",
+      "name": "ВТБ 2025",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 2 файлов",
+      "id": "06.3sber",
+      "name": "Сбер 2024",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 37 КБ",
+      "id": "06.4",
+      "name": "Сверка банк-свод",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 14 файлов",
+      "id": "09.1-09.9",
+      "name": "Нормативка",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 14 файлов",
+      "id": "10.1-10.5",
+      "name": "Рыночные зарплаты",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 10 КБ",
+      "id": "11.2",
+      "name": "Свод поставщиков",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "папка, 1376 файлов",
+      "id": "11.2pdf",
+      "name": "Ведомость PDF поставщики",
+      "required": false
+    },
+    {
+      "status": "ok",
+      "detail": "файл 8 КБ",
+      "id": "12.1",
+      "name": "Свод разнарядки 2024",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 24 КБ",
+      "id": "12.2",
+      "name": "Свод разнарядки 2025",
+      "required": true
+    },
+    {
+      "status": "missing",
+      "detail": "не найдено",
+      "id": "yandex",
+      "name": "Ссылки Яндекс",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 17 КБ",
+      "id": "opis",
+      "name": "Опись",
+      "required": true
+    },
+    {
+      "status": "ok",
+      "detail": "файл 8 КБ",
+      "id": "Personal24",
+      "name": "Personal 2024",
+      "required": true
+    },
+    {
+      "status": "missing",
+      "detail": "не найдено",
+      "id": "Personal25",
+      "name": "Personal 2025",
+      "required": false
+    },
+    {
+      "status": "empty",
+      "detail": "папка пуста",
+      "id": "01",
+      "name": "Иск",
+      "required": false
+    },
+    {
+      "status": "empty",
+      "detail": "папка пуста",
+      "id": "03",
+      "name": "Учредительные",
+      "required": false
+    },
+    {
+      "status": "empty",
+      "detail": "папка пуста",
+      "id": "05",
+      "name": "ЕКЖЯ",
+      "required": false
+    },
+    {
+      "status": "empty",
+      "detail": "папка пуста",
+      "id": "07",
+      "name": "Кадры",
+      "required": false
+    },
+    {
+      "status": "empty",
+      "detail": "папка пуста",
+      "id": "08",
+      "name": "Аренда VW",
+      "required": false
+    },
+    {
+      "status": "missing",
+      "detail": "не найдено",
+      "id": "10osv",
+      "name": "ОСВ 70 ФОТ",
+      "required": false
+    }
+  ],
+  "ok": 16,
+  "missing_required": [
+    "yandex"
+  ],
+  "partial": []
+}
