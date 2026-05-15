@@ -25,6 +25,9 @@ ARIAL = "Arial"
 C_BRAND = "01696F"
 C_ROSE = "F5E3EC"
 
+# Excel: формат даты только строчными d/m/y; DD.MM.YYYY не распознаётся — ячейка как число.
+XLSX_DATE_SHORT = "dd.mm.yyyy"
+
 try:
     import openpyxl
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -240,7 +243,7 @@ def create_xlsx(
     ws["D6"], ws["E6"] = "ВСЕГО СТРАНИЦ:", total_pages
     ws["F6"], ws["G6"] = "ОБЩИЙ РАЗМЕР:", f"{round(total_kb / 1024, 1)} МБ"
     ws["H6"], ws["I6"] = "ДАТА:", datetime.now()
-    ws["I6"].number_format = "DD.MM.YYYY"
+    ws["I6"].number_format = XLSX_DATE_SHORT
     for c in ("B6", "D6", "F6", "H6"):
         ws[c].font = Font(name=ARIAL, size=11, bold=True, color=C_BRAND)
         ws[c].alignment = Alignment(horizontal="right")
@@ -279,7 +282,7 @@ def create_xlsx(
         ws[f"D{r}"].alignment = Alignment(horizontal="right")
         ws[f"D{r}"].border = BORDER_ALL
         ws[f"E{r}"] = rec["mtime"]
-        ws[f"E{r}"].number_format = "DD.MM.YYYY HH:MM"
+        ws[f"E{r}"].number_format = XLSX_DATE_SHORT
         ws[f"E{r}"].border = BORDER_ALL
         ws[f"F{r}"] = rec["pages"]
         if isinstance(rec["pages"], int):
@@ -345,7 +348,7 @@ def create_xlsx(
         ws2[f"G{r}"] = stats["earliest"]
         ws2[f"H{r}"] = stats["latest"]
         for c in "G", "H":
-            ws2[f"{c}{r}"].number_format = "DD.MM.YYYY"
+            ws2[f"{c}{r}"].number_format = XLSX_DATE_SHORT
         for c in "BCDEFGH":
             ws2[f"{c}{r}"].border = BORDER_ALL
 
@@ -412,6 +415,8 @@ INVENTORY_SUFFIXES: frozenset[str] = frozenset({
 def skip_inventory_path(path: Path) -> bool:
     """Служебные файлы и сами сводные ведомости не входят в инвентаризацию."""
     n = path.name.lower()
+    if n == "readme.md":
+        return True
     if n.startswith("~$"):
         return True
     if path.suffix.lower() == ".xlsx":
@@ -537,7 +542,7 @@ def create_xlsx_inventory(
     ws["D6"], ws["E6"] = "ВСЕГО СТРАНИЦ (PDF):", total_pages
     ws["F6"], ws["G6"] = "ОБЩИЙ РАЗМЕР:", f"{round(total_kb / 1024, 1)} МБ"
     ws["H6"], ws["I6"] = "ДАТА:", datetime.now()
-    ws["I6"].number_format = "DD.MM.YYYY"
+    ws["I6"].number_format = XLSX_DATE_SHORT
     for c in ("B6", "D6", "F6", "H6"):
         ws[c].font = Font(name=ARIAL, size=11, bold=True, color=C_BRAND)
         ws[c].alignment = Alignment(horizontal="right")
@@ -578,7 +583,7 @@ def create_xlsx_inventory(
         ws[f"D{r}"].alignment = Alignment(horizontal="right")
         ws[f"D{r}"].border = BORDER_ALL
         ws[f"E{r}"] = rec["mtime"]
-        ws[f"E{r}"].number_format = "DD.MM.YYYY HH:MM"
+        ws[f"E{r}"].number_format = XLSX_DATE_SHORT
         ws[f"E{r}"].border = BORDER_ALL
         pv = rec["pages"]
         ws[f"F{r}"] = pv
@@ -647,7 +652,7 @@ def create_xlsx_inventory(
         ws2[f"G{r}"] = stats["earliest"]
         ws2[f"H{r}"] = stats["latest"]
         for c in "G", "H":
-            ws2[f"{c}{r}"].number_format = "DD.MM.YYYY"
+            ws2[f"{c}{r}"].number_format = XLSX_DATE_SHORT
         for c in "BCDEFGH":
             ws2[f"{c}{r}"].border = BORDER_ALL
 

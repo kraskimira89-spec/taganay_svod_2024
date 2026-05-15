@@ -31,6 +31,8 @@ except ImportError:
 
 ARIAL = "Arial"
 C_BRAND = "01696F"
+# См. sozdat_vedomost_pdf: в Excel — только dd.mm.yyyy (строчные).
+XLSX_DATE_SHORT = "dd.mm.yyyy"
 C_RED = "A12C7B"
 C_GREEN = "E8F1E3"
 C_YELLOW = "FFF6CC"
@@ -180,6 +182,8 @@ def scan_folder(folder_path: Path) -> tuple[Path, list[dict]]:
             continue
 
         if item.is_file():
+            if item.name.lower() == "readme.md":
+                continue
             stat = item.stat()
             files.append(
                 {
@@ -265,7 +269,7 @@ def create_xlsx(
     ws["G7"] = f"{total_mb} МБ" if total_mb > 1 else f"{int(total_kb)} КБ"
     ws["G7"].font = Font(name=ARIAL, size=11, bold=True)
     ws["H7"] = datetime.now()
-    ws["H7"].number_format = "DD.MM.YYYY"
+    ws["H7"].number_format = XLSX_DATE_SHORT
     ws["H7"].font = Font(name=ARIAL, size=10, color="7A7974")
     ws["H7"].alignment = Alignment(horizontal="right")
 
@@ -329,7 +333,7 @@ def create_xlsx(
         ws[f"D{r}"].border = BORDER
 
         ws[f"E{r}"] = f["mtime"]
-        ws[f"E{r}"].number_format = "DD.MM.YYYY"
+        ws[f"E{r}"].number_format = XLSX_DATE_SHORT
         ws[f"E{r}"].font = Font(name=ARIAL, size=10)
         ws[f"E{r}"].alignment = Alignment(horizontal="center", vertical="center")
         ws[f"E{r}"].border = BORDER
