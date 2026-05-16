@@ -183,6 +183,8 @@ def scan_folder(folder_path: Path) -> tuple[Path, list[dict]]:
         if item.is_file():
             if item.name.lower() == "readme.md":
                 continue
+            if item.name.lower() == "сводная_ведомость.xlsx":
+                continue
             stat = item.stat()
             files.append(
                 {
